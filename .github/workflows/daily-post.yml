@@ -1,0 +1,55 @@
+name: Daily Instagram Post
+
+on:
+  schedule:
+    # 13:00 UTC = 8:00 AM America/Chicago (CDT) / 7:00 AM CST
+    # Adjust the hour if you want a different local posting time.
+    - cron: "0 13 * * *"
+  workflow_dispatch: {}  # lets you manually trigger a run from the Actions tab to test
+
+permissions:
+  contents: write  # needed to commit the rendered image back to the repo
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate quote and render image
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 scripts/run_daily.py
+
+      - name: Commit rendered image to repo
+        run: |
+          git config user.name "blacktie-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/posts/*.png Config/quote_history.json
+          git commit -m "Daily post: $(date -u +%Y-%m-%d)" || echo "Nothing to commit"
+          git push
+
+      - name: Build public image URL
+        id: url
+        run: |
+          IMG_PATH=$(cat scripts/_today_image_path.txt)
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          echo "image_url=https://raw.githubusercontent.com/${REPO}/${BRANCH}/${IMG_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Instagram
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          CAPTION=$(cat scripts/_today_caption.txt)
+          python3 scripts/publish_instagram.py "${{ steps.url.outputs.image_url }}" "$CAPTION"
