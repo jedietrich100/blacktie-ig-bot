@@ -1,0 +1,30 @@
+{
+  "monday": {
+    "theme": "Motivation & Mindset",
+    "prompt": "Write a short, punchy motivational quote (max 20 words) about discipline, mindset, or momentum. Suitable for a business/security-focused audience. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "tuesday": {
+    "theme": "Cybersecurity Insight",
+    "prompt": "Write a short, punchy quote or one-liner (max 20 words) about cybersecurity awareness, digital risk, or protecting what matters. Should feel authoritative, not preachy. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "wednesday": {
+    "theme": "AI & Technology",
+    "prompt": "Write a short, punchy quote (max 20 words) about artificial intelligence, automation, or the pace of technological change. Thought-provoking, not hype-y. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "thursday": {
+    "theme": "Leadership & Strategy",
+    "prompt": "Write a short, punchy quote (max 20 words) about leadership, decision-making, or business strategy. Should sound like it belongs in a boardroom. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "friday": {
+    "theme": "Future of Work & Innovation",
+    "prompt": "Write a short, punchy quote (max 20 words) about the future of work, innovation, or adapting to change. Forward-looking tone. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "saturday": {
+    "theme": "Founder & Entrepreneur Grind",
+    "prompt": "Write a short, punchy quote (max 20 words) about entrepreneurship, building something from nothing, or the grind behind success. No hashtags, no emojis, no attribution, just the quote text."
+  },
+  "sunday": {
+    "theme": "Reflection & Reset",
+    "prompt": "Write a short, calm, reflective quote (max 20 words) about rest, perspective, or resetting before a new week. Lighter and more personal in tone than the rest of the week. No hashtags, no emojis, no attribution, just the quote text."
+  }
+}
