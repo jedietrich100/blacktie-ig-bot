@@ -1,0 +1,33 @@
+name: Generate Templates (run once)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pillow
+        run: pip install Pillow
+
+      - name: Generate templates
+        run: python3 scripts/generate_templates.py
+
+      - name: Commit templates
+        run: |
+          git config user.name "blacktie-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add assets/templates/*.png
+          git commit -m "Generate background templates" || echo "Nothing to commit"
+          git push
