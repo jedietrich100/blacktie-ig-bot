@@ -29,8 +29,7 @@ def create_container(ig_user_id, access_token, image_url, caption):
         },
         timeout=30,
     )
-   print("INSTAGRAM RESPONSE:", resp.status_code, resp.text)
-   resp.raise_for_status()
+   print("INSTAGRAM RESPONSE:", resp.status_code, resp.text); 
     return resp.json()["id"]
 
 
