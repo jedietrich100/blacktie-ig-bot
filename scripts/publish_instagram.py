@@ -1,9 +1,9 @@
 """
 Publishes an already-public image URL to Instagram using the Instagram API
-with Instagram Login (graph.instagram.com endpoints - no Facebook Page needed).
+with Instagram Login (graph.instagram.com endpoints – no Facebook Page needed).
 
 Two-step flow per Meta's docs:
-  1. POST /{ig_user_id}/media       -> create a media container from image_url + caption
+  1. POST /{ig_user_id}/media        -> create a media container from image_url + caption
   2. POST /{ig_user_id}/media_publish -> publish that container
 
 Usage: python3 scripts/publish_instagram.py "<image_url>" "<caption>"
@@ -18,7 +18,6 @@ import requests
 GRAPH_VERSION = "v21.0"
 BASE_URL = f"https://graph.instagram.com/{GRAPH_VERSION}"
 
-
 def create_container(ig_user_id, access_token, image_url, caption):
     resp = requests.post(
         f"{BASE_URL}/{ig_user_id}/media",
@@ -29,8 +28,9 @@ def create_container(ig_user_id, access_token, image_url, caption):
         },
         timeout=30,
     )
-   return resp.json()["id"]
-
+    print("INSTAGRAM RESPONSE:", resp.status_code, resp.text)
+    resp.raise_for_status()
+    return resp.json()["id"]
 
 def wait_until_ready(container_id, access_token, max_attempts=10, delay=3):
     for _ in range(max_attempts):
@@ -48,7 +48,6 @@ def wait_until_ready(container_id, access_token, max_attempts=10, delay=3):
         time.sleep(delay)
     raise TimeoutError(f"Media container {container_id} not ready after {max_attempts} checks")
 
-
 def publish_container(ig_user_id, access_token, container_id):
     resp = requests.post(
         f"{BASE_URL}/{ig_user_id}/media_publish",
@@ -61,22 +60,21 @@ def publish_container(ig_user_id, access_token, container_id):
     resp.raise_for_status()
     return resp.json()
 
-
 def main():
     if len(sys.argv) < 3:
-        print("Usage: publish_instagram.py '<image_url>' '<caption>'")
+        print("Usage: python3 scripts/publish_instagram.py <image_url> <caption>")
         sys.exit(1)
 
-    image_url, caption = sys.argv[1], sys.argv[2]
+    image_url = sys.argv[1]
+    caption = sys.argv[2]
+
     ig_user_id = os.environ["IG_USER_ID"]
     access_token = os.environ["IG_ACCESS_TOKEN"]
 
     container_id = create_container(ig_user_id, access_token, image_url, caption)
-    print(f"Created container {container_id}, waiting for processing...")
     wait_until_ready(container_id, access_token)
     result = publish_container(ig_user_id, access_token, container_id)
-    print(f"Published: {result}")
-
+    print("Published:", result)
 
 if __name__ == "__main__":
     main()
