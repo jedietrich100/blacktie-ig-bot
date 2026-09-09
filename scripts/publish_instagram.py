@@ -30,7 +30,7 @@ def create_container(ig_user_id, access_token, image_url, caption):
         timeout=30,
     )
    print("INSTAGRAM RESPONSE:", resp.status_code, resp.text); 
-    return resp.json()["id"]
+   return resp.json()["id"]
 
 
 def wait_until_ready(container_id, access_token, max_attempts=10, delay=3):
