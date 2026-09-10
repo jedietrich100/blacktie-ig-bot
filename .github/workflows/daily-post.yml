@@ -5,6 +5,11 @@ on:
     # 13:00 UTC = 8:00 AM America/Chicago (CDT) / 7:00 AM CST
     - cron: "0 13 * * *"
   workflow_dispatch: {}
+  # Temporary trigger so this design preview can publish immediately.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/render_post.py"
 
 # Prevent a manual test and the scheduled run from writing the same daily files
 # at the same time.
