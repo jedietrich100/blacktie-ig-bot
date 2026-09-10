@@ -6,6 +6,8 @@ one consistent "Luxury Executive" system on top: deeper contrast, cinematic
 vignette, restrained gold accents, stronger typography, selective keyword
 highlights, and a recognizable Black Tie Intel frame.
 
+Design system: Luxury Executive v1.
+
 Usage:
     python3 scripts/render_post.py "<quote text>" "<theme label>" "<output_path>"
 """
