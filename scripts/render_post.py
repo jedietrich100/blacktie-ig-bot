@@ -309,7 +309,7 @@ def render(quote_text, theme_label, output_path, brand_name="BLACK TIE INTEL"):
     # Signature separator and global positioning footer.
     draw.line((330, 955, 750, 955), fill=(*GOLD_SOFT, 135), width=2)
     footer_font = ImageFont.truetype(SANS_BOLD, 17)
-    draw_centered(draw, "GLOBAL INTELLIGENCE FOR BETTER DECISIONS", 985, footer_font, MUTED)
+    draw_centered(draw, "SEE WIDER. DECIDE SMARTER.", 985, footer_font, MUTED)
 
     bottom_font = ImageFont.truetype(SANS, 18)
     draw_centered(draw, "@BLACKTIE_INTEL", H - 112, bottom_font, GOLD_SOFT)
