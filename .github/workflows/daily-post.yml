@@ -3,12 +3,17 @@ name: Daily Instagram Post
 on:
   schedule:
     # 13:00 UTC = 8:00 AM America/Chicago (CDT) / 7:00 AM CST
-    # Adjust the hour if you want a different local posting time.
     - cron: "0 13 * * *"
-  workflow_dispatch: {}  # lets you manually trigger a run from the Actions tab to test
+  workflow_dispatch: {}
+
+# Prevent a manual test and the scheduled run from writing the same daily files
+# at the same time.
+concurrency:
+  group: blacktie-daily-instagram-post
+  cancel-in-progress: false
 
 permissions:
-  contents: write  # needed to commit the rendered image back to the repo
+  contents: write
 
 jobs:
   post:
@@ -16,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,19 +39,65 @@ jobs:
 
       - name: Commit rendered image to repo
         run: |
+          set -euo pipefail
           git config user.name "blacktie-bot"
           git config user.email "actions@users.noreply.github.com"
           git add docs/posts/*.jpg Config/quote_history.json
-          git commit -m "Daily post: $(date -u +%Y-%m-%d)" || echo "Nothing to commit"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Daily post: $(date -u +%Y-%m-%d)"
+
+            # A manual edit can land on main while this job is running. Rebase
+            # before pushing so that no daily post is lost to a non-fast-forward.
+            for attempt in 1 2 3; do
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+              if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "Unable to push generated post after 3 attempts"
+                exit 1
+              fi
+              sleep $((attempt * 5))
+            done
+          fi
 
       - name: Build public image URL
         id: url
         run: |
+          set -euo pipefail
           IMG_PATH=$(cat scripts/_today_image_path.txt)
           REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          echo "image_url=https://raw.githubusercontent.com/${REPO}/${BRANCH}/${IMG_PATH}" >> "$GITHUB_OUTPUT"
+          # Pin the URL to the exact commit containing the generated image.
+          # This avoids branch/CDN timing races immediately after git push.
+          IMAGE_COMMIT=$(git rev-parse HEAD)
+          IMAGE_URL="https://raw.githubusercontent.com/${REPO}/${IMAGE_COMMIT}/${IMG_PATH}"
+          echo "image_url=${IMAGE_URL}" >> "$GITHUB_OUTPUT"
+          echo "Public image: ${IMAGE_URL}"
+
+      - name: Verify public image is ready
+        env:
+          IMAGE_URL: ${{ steps.url.outputs.image_url }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if curl --location --fail --silent --show-error \
+              --output /tmp/blacktie-post.jpg "$IMAGE_URL"; then
+              CONTENT_TYPE=$(file --brief --mime-type /tmp/blacktie-post.jpg || true)
+              if [ "$CONTENT_TYPE" = "image/jpeg" ]; then
+                echo "Public JPEG is reachable and ready for Instagram."
+                exit 0
+              fi
+              echo "URL responded, but content type was ${CONTENT_TYPE:-unknown}."
+            else
+              echo "Image is not reachable yet (attempt ${attempt}/12)."
+            fi
+            sleep 5
+          done
+          echo "Generated image never became publicly reachable."
+          exit 1
 
       - name: Publish to Instagram
         env:
