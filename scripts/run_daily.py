@@ -35,7 +35,7 @@ def main():
     quote, theme = data["quote"], data["theme"]
 
     today_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    relative_image_path = f"docs/posts/{today_str}.png"
+    relative_image_path = f"docs/posts/{today_str}.jpg"
     absolute_image_path = os.path.join(HERE, "..", relative_image_path)
 
     run([
