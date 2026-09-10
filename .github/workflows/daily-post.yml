@@ -5,6 +5,12 @@ on:
     # 13:00 UTC = 8:00 AM America/Chicago (CDT) / 7:00 AM CST
     - cron: "0 13 * * *"
   workflow_dispatch: {}
+  # Temporary self-test hook: changing the publisher script starts one test run.
+  # This will be removed after the repair is verified.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/publish_instagram.py"
 
 # Prevent a manual test and the scheduled run from writing the same daily files
 # at the same time.
@@ -70,8 +76,6 @@ jobs:
           set -euo pipefail
           IMG_PATH=$(cat scripts/_today_image_path.txt)
           REPO="${{ github.repository }}"
-          # Pin the URL to the exact commit containing the generated image.
-          # This avoids branch/CDN timing races immediately after git push.
           IMAGE_COMMIT=$(git rev-parse HEAD)
           IMAGE_URL="https://raw.githubusercontent.com/${REPO}/${IMAGE_COMMIT}/${IMG_PATH}"
           echo "image_url=${IMAGE_URL}" >> "$GITHUB_OUTPUT"
