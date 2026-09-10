@@ -19,18 +19,29 @@ GRAPH_VERSION = "v21.0"
 BASE_URL = f"https://graph.instagram.com/{GRAPH_VERSION}"
 
 def create_container(ig_user_id, access_token, image_url, caption):
-    resp = requests.post(
-        f"{BASE_URL}/{ig_user_id}/media",
-        data={
-            "image_url": image_url,
-            "caption": caption,
-            "access_token": access_token,
-        },
-        timeout=30,
-    )
-    print("INSTAGRAM RESPONSE:", resp.status_code, resp.text)
-    resp.raise_for_status()
-    return resp.json()["id"]
+    for attempt in range(4):
+        resp = requests.post(
+            f"{BASE_URL}/{ig_user_id}/media",
+            data={
+                "image_url": image_url,
+                "caption": caption,
+                "access_token": access_token,
+            },
+            timeout=30,
+        )
+
+        print("INSTAGRAM RESPONSE:", resp.status_code, resp.text)
+
+        if resp.status_code not in (429, 500, 502, 503, 504):
+            resp.raise_for_status()
+            return resp.json()["id"]
+
+        if attempt == 3:
+            resp.raise_for_status()
+
+        delay = 15 * (2 ** attempt)
+        print(f"Temporary Instagram error; retrying in {delay} seconds...")
+        time.sleep(delay)
 
 def wait_until_ready(container_id, access_token, max_attempts=10, delay=3):
     for _ in range(max_attempts):
