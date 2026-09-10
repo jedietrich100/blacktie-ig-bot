@@ -1,23 +1,48 @@
 """
-Orchestrates the daily generation step (everything EXCEPT the git commit/push
-and the Instagram publish call, which are handled by the GitHub Actions
-workflow so the image URL is guaranteed to be live before publishing).
+Build today's Black Tie Intel post assets.
 
-Produces:
-  - docs/posts/YYYY-MM-DD.png   (the rendered image)
-  - scripts/_today_caption.txt  (caption text, read by the workflow)
-  - scripts/_today_image_path.txt (relative path, read by the workflow)
-
-Usage: python3 scripts/run_daily.py
+The GitHub Actions workflow handles committing the finished JPEG and publishing
+it to Instagram after the public image URL is verified.
 """
 
-import json
-import subprocess
 import datetime
+import json
 import os
+import subprocess
 import sys
 
 HERE = os.path.dirname(__file__)
+
+THEME_CAPTIONS = {
+    "Motivation & Mindset": (
+        "Momentum is rarely dramatic. It is built in the decisions nobody applauds.",
+        "#Mindset #Discipline #Momentum",
+    ),
+    "Cybersecurity Insight": (
+        "Good security starts before the alert.",
+        "#Cybersecurity #DigitalRisk #SecurityAwareness",
+    ),
+    "AI & Technology": (
+        "The advantage goes to people who turn new technology into better judgment.",
+        "#ArtificialIntelligence #Technology #AI",
+    ),
+    "Leadership & Strategy": (
+        "Strategy becomes visible when a real decision has to be made.",
+        "#Leadership #Strategy #DecisionMaking",
+    ),
+    "Future of Work & Innovation": (
+        "Change rewards the people who prepare before adaptation becomes urgent.",
+        "#FutureOfWork #Innovation #Technology",
+    ),
+    "Founder & Entrepreneur Grind": (
+        "Building well is quieter than the internet makes it look.",
+        "#Entrepreneurship #Founders #Business",
+    ),
+    "Reflection & Reset": (
+        "Perspective is productive, too.",
+        "#Reflection #Perspective #Reset",
+    ),
+}
 
 
 def run(cmd):
@@ -29,6 +54,20 @@ def run(cmd):
     return result.stdout.strip()
 
 
+def build_caption(quote, theme):
+    context_line, theme_tags = THEME_CAPTIONS.get(
+        theme,
+        ("Think clearly. Decide deliberately. Stay ahead.", "#Strategy #Business"),
+    )
+
+    return (
+        f"{quote}\n\n"
+        f"{context_line}\n\n"
+        "What’s your read?\n\n"
+        f"#BlackTieIntel {theme_tags}"
+    )
+
+
 def main():
     quote_json = run([sys.executable, os.path.join(HERE, "generate_quote.py")])
     data = json.loads(quote_json)
@@ -38,15 +77,17 @@ def main():
     relative_image_path = f"docs/posts/{today_str}.jpg"
     absolute_image_path = os.path.join(HERE, "..", relative_image_path)
 
-    run([
-        sys.executable,
-        os.path.join(HERE, "render_post.py"),
-        quote,
-        theme,
-        absolute_image_path,
-    ])
+    run(
+        [
+            sys.executable,
+            os.path.join(HERE, "render_post.py"),
+            quote,
+            theme,
+            absolute_image_path,
+        ]
+    )
 
-    caption = f"{quote}\n\n— Black Tie Intel | {theme}"
+    caption = build_caption(quote, theme)
 
     with open(os.path.join(HERE, "_today_caption.txt"), "w") as f:
         f.write(caption)
