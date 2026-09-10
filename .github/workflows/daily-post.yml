@@ -5,6 +5,11 @@ on:
     # 13:00 UTC = 8:00 AM America/Chicago (CDT) / 7:00 AM CST
     - cron: "0 13 * * *"
   workflow_dispatch: {}
+  # One-time design verification hook. Removed after the test succeeds.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/render_post.py"
 
 # Prevent a manual test and the scheduled run from writing the same daily files
 # at the same time.
@@ -49,8 +54,6 @@ jobs:
           else
             git commit -m "Daily post: $(date -u +%Y-%m-%d)"
 
-            # A manual edit can land on main while this job is running. Rebase
-            # before pushing so that no daily post is lost to a non-fast-forward.
             for attempt in 1 2 3; do
               git pull --rebase origin "${GITHUB_REF_NAME}"
               if git push origin "HEAD:${GITHUB_REF_NAME}"; then
