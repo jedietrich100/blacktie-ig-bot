@@ -3,11 +3,14 @@ Generate one original Black Tie Intel quote for today's editorial theme.
 
 The prompt is intentionally strict: the image renderer works best with a short
 single-sentence thought that has one clear tension and a memorable landing.
+A minority of posts receive a subtle global perspective so the brand feels
+world-aware without turning every post into geopolitical commentary.
 """
 
 import datetime
 import json
 import os
+import random
 
 import anthropic
 
@@ -27,6 +30,15 @@ Black Tie Intel voice requirements:
 - No attribution, quotation marks, hashtags, emojis, labels, preamble, or explanation.
 """.strip()
 
+GLOBAL_LENS_GUIDE = """
+Subtle global lens for this post:
+- Widen the perspective beyond one company, city, or market.
+- You may hint at international competition, interconnected systems, cross-border change, global technology, or broader strategic context.
+- Keep it timeless and executive, not newsy or political.
+- Do not name countries, politicians, wars, parties, or current events unless the day's base theme explicitly requires it.
+- Do not use the words "global" or "world" just to force the concept; the perspective should feel natural.
+""".strip()
+
 
 def load_history():
     if os.path.exists(HISTORY_PATH):
@@ -41,7 +53,6 @@ def save_history(history):
 
 
 def clean_quote(text):
-    # Keep the output on one line and remove common quote-wrapper characters.
     text = " ".join(text.strip().split())
     text = text.strip('"“”')
     return text
@@ -63,7 +74,17 @@ def main():
             + "\n- ".join(recent_quotes)
         )
 
-    prompt = f"{day_config['prompt']}\n\n{STYLE_GUIDE}{avoid_block}"
+    # About one in three posts gets the broader international/connected-systems
+    # perspective. This keeps the global identity present but understated.
+    use_global_lens = random.random() < 0.35
+    global_block = f"\n\n{GLOBAL_LENS_GUIDE}" if use_global_lens else ""
+
+    prompt = (
+        f"{day_config['prompt']}\n\n"
+        f"{STYLE_GUIDE}"
+        f"{global_block}"
+        f"{avoid_block}"
+    )
 
     client = anthropic.Anthropic()
     message = client.messages.create(
@@ -76,7 +97,6 @@ def main():
         "".join(block.text for block in message.content if block.type == "text")
     )
 
-    # Fail loudly instead of publishing malformed model output.
     word_count = len(quote_text.split())
     if not quote_text or word_count > 24 or "\n" in quote_text:
         raise RuntimeError(f"Generated quote failed format check: {quote_text!r}")
@@ -85,11 +105,17 @@ def main():
         "day": today,
         "theme": day_config["theme"],
         "quote": quote_text,
+        "global_lens": use_global_lens,
         "generated_at": datetime.datetime.utcnow().isoformat() + "Z",
     }
 
     history.append(
-        {"quote": quote_text, "day": today, "date": result["generated_at"]}
+        {
+            "quote": quote_text,
+            "day": today,
+            "date": result["generated_at"],
+            "global_lens": use_global_lens,
+        }
     )
     save_history(history)
 
