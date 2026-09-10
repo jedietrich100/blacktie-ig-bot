@@ -6,7 +6,9 @@ one consistent "Luxury Executive" system on top: deeper contrast, cinematic
 vignette, restrained gold accents, stronger typography, selective keyword
 highlights, and a recognizable Black Tie Intel frame.
 
-Design system: Luxury Executive v1.
+Design system: Luxury Executive v2 — subtle global edition.
+The global treatment is intentionally understated: a faint globe/grid, small
+signal nodes, and a broader positioning line without flags or loud map graphics.
 
 Usage:
     python3 scripts/render_post.py "<quote text>" "<theme label>" "<output_path>"
@@ -36,6 +38,12 @@ MUTED = (174, 177, 181)
 PANEL = (7, 10, 14, 188)
 SHADOW = (0, 0, 0, 210)
 
+# Subtle global layer palette (RGBA)
+GLOBAL_GRID = (122, 137, 153, 32)
+GLOBAL_GRID_SOFT = (122, 137, 153, 20)
+GLOBAL_GOLD = (205, 166, 84, 40)
+GLOBAL_NODE = (205, 166, 84, 76)
+
 STOPWORDS = {
     "about", "after", "again", "against", "before", "being", "between", "could",
     "does", "doing", "down", "during", "each", "from", "have", "having", "into",
@@ -50,7 +58,8 @@ POWER_ROOTS = (
     "disciplin", "execut", "focus", "future", "innov", "intellig", "leader",
     "momentum", "opportun", "protect", "risk", "secur", "strateg", "trust",
     "certainty", "design", "default", "action", "change", "technology",
-    "automation", "founder", "signal", "leverage",
+    "automation", "founder", "signal", "leverage", "global", "market",
+    "border", "system", "perspect", "connect", "international",
 )
 
 
@@ -156,8 +165,51 @@ def add_luxury_treatment(img):
     return canvas
 
 
+def add_subtle_global_overlay(canvas):
+    """Add a quiet global-intelligence motif without overpowering the quote."""
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+
+    # Offset globe on the right: intentionally incomplete so it feels like a
+    # strategic graphic element rather than a literal map illustration.
+    globe_box = (565, 350, 1115, 930)
+    draw.ellipse(globe_box, outline=GLOBAL_GRID, width=2)
+
+    # Longitude arcs.
+    draw.arc((650, 350, 1020, 930), 90, 270, fill=GLOBAL_GRID_SOFT, width=2)
+    draw.arc((510, 350, 1160, 930), 270, 90, fill=GLOBAL_GRID_SOFT, width=2)
+
+    # Latitude arcs.
+    draw.arc((585, 425, 1095, 610), 0, 180, fill=GLOBAL_GRID_SOFT, width=2)
+    draw.arc((585, 535, 1095, 745), 180, 360, fill=GLOBAL_GRID_SOFT, width=2)
+    draw.arc((600, 650, 1080, 860), 180, 360, fill=GLOBAL_GRID_SOFT, width=2)
+
+    # Soft orbital sweep.
+    draw.arc((480, 275, 1210, 1040), 202, 322, fill=GLOBAL_GOLD, width=3)
+
+    # Understated connected signal nodes.
+    nodes = [
+        (655, 490),
+        (760, 585),
+        (875, 470),
+        (950, 655),
+        (805, 760),
+    ]
+    connections = [(0, 1), (1, 2), (1, 4), (2, 3), (3, 4)]
+
+    for a, b in connections:
+        draw.line((nodes[a], nodes[b]), fill=GLOBAL_GRID_SOFT, width=2)
+
+    for x, y in nodes:
+        r = 4
+        draw.ellipse((x - r, y - r, x + r, y + r), fill=GLOBAL_NODE)
+
+    # Blur only a touch to keep it elegant rather than technical.
+    layer = layer.filter(ImageFilter.GaussianBlur(0.35))
+    return Image.alpha_composite(canvas, layer)
+
+
 def draw_frame(draw):
-    # Main luxury frame.
     draw.rounded_rectangle(
         (42, 42, W - 42, H - 42),
         radius=28,
@@ -165,7 +217,6 @@ def draw_frame(draw):
         width=2,
     )
 
-    # Short corner accents add visual energy without clutter.
     accent = 78
     for x1, y1, x2, y2 in (
         (42, 125, 42, 125 + accent),
@@ -191,7 +242,6 @@ def draw_quote_lines(draw, lines, font, line_height, start_y, highlights):
             clean = normalize_word(token)
             fill = GOLD if clean in highlights else IVORY
 
-            # Restrained shadow for mobile readability.
             draw.text((x + 2, y + 3), token, font=font, fill=SHADOW)
             draw.text((x, y), token, font=font, fill=fill)
             x += token_width + space_width
@@ -217,6 +267,9 @@ def render(quote_text, theme_label, output_path, brand_name="BLACK TIE INTEL"):
         width=2,
     )
     canvas = Image.alpha_composite(canvas, panel_layer)
+
+    # Global motif sits over the dark panel but under all text.
+    canvas = add_subtle_global_overlay(canvas)
 
     draw = ImageDraw.Draw(canvas)
     draw_frame(draw)
@@ -253,10 +306,10 @@ def render(quote_text, theme_label, output_path, brand_name="BLACK TIE INTEL"):
     highlights = choose_highlights(quote_text)
     draw_quote_lines(draw, lines, quote_font, line_height, start_y, highlights)
 
-    # Signature separator and footer.
-    draw.line((360, 955, 720, 955), fill=(*GOLD_SOFT, 135), width=2)
-    footer_font = ImageFont.truetype(SANS_BOLD, 18)
-    draw_centered(draw, "INTELLIGENCE FOR BETTER DECISIONS", 985, footer_font, MUTED)
+    # Signature separator and global positioning footer.
+    draw.line((330, 955, 750, 955), fill=(*GOLD_SOFT, 135), width=2)
+    footer_font = ImageFont.truetype(SANS_BOLD, 17)
+    draw_centered(draw, "GLOBAL INTELLIGENCE FOR BETTER DECISIONS", 985, footer_font, MUTED)
 
     bottom_font = ImageFont.truetype(SANS, 18)
     draw_centered(draw, "@BLACKTIE_INTEL", H - 112, bottom_font, GOLD_SOFT)
@@ -265,7 +318,7 @@ def render(quote_text, theme_label, output_path, brand_name="BLACK TIE INTEL"):
     canvas.convert("RGB").save(output_path, "JPEG", quality=95, optimize=True)
 
     print(
-        f"Rendered Luxury Executive post using {chosen}; "
+        f"Rendered Luxury Executive Global post using {chosen}; "
         f"highlighted={sorted(highlights)} -> {output_path}"
     )
     return output_path
