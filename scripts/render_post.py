@@ -1,3 +1,4 @@
+# Preview publish trigger: 2026-09-10
 """
 Render a premium 1080x1350 Black Tie Intel Instagram card.
 
