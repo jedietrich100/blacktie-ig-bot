@@ -69,7 +69,6 @@ def main():
     message = client.messages.create(
         model="claude-sonnet-5",
         max_tokens=100,
-        temperature=0.9,
         messages=[{"role": "user", "content": prompt}],
     )
 
