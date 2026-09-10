@@ -104,8 +104,7 @@ def render(quote_text, theme_label, output_path, brand_name="BLACK TIE INTEL"):
     brand_width = draw.textlength(brand_name, font=brand_font)
     draw.text(((W - brand_width) / 2, H - 140), brand_name, font=brand_font, fill=GOLD)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    img.save(output_path, "PNG")
+    os.makedirs(os.path.dirname(output_path), exist_ok=img.convert("RGB").save(output_path, "JPEG", quality=95) 
     print(f"Rendered post using {chosen} -> {output_path}")
     return output_path
 
