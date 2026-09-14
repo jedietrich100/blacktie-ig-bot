@@ -37,6 +37,7 @@ def main() -> None:
         data["headline"],
         data["supporting_text"],
         data["category"],
+        data.get("visual_symbol", ""),
         str(absolute_image_path),
     ])
 
