@@ -62,6 +62,10 @@ Editorial rules:
 - If a topic would need live verification, choose a different evergreen topic.
 - Do not make unsupported security, privacy, battery, performance, health, or
   financial claims.
+- Avoid absolute or overpromising language such as "every app", "always", "never",
+  "guaranteed", "completely", or "no glasses required" unless literally and
+  universally true. Prefer modest wording such as "many apps", "can help", or
+  "may make text easier to read".
 - For Apple/iPhone guidance, avoid version-specific menu paths unless the step is
   very stable; prefer tips that remain useful even if wording changes slightly.
 - Do not repeat or lightly paraphrase a recent topic.
@@ -71,6 +75,7 @@ Graphic rules:
 - Headline: 3-6 words, maximum 42 characters.
 - Supporting text: one or two short lines, maximum 105 characters total.
 - Supporting text should explain the action, not repeat the headline.
+- Supporting text must be accurate and modest; avoid universal claims.
 
 Caption rules:
 - Start with: ⚡ TODAY’S 30-SECOND TECH WIN
@@ -148,6 +153,18 @@ def validate(data: dict, recent: list[dict]) -> None:
         raise ValueError("Save CTA missing")
     if "Follow @DigitalCalmDaily for one simple 30-Second Tech Win every day." not in caption:
         raise ValueError("Follow CTA missing")
+
+    claim_text = f"{supporting} {caption}".lower()
+    blocked_claims = [
+        "every app",
+        "no glasses required",
+        "guaranteed",
+        "completely secure",
+        "completely safe",
+    ]
+    for phrase in blocked_claims:
+        if phrase in claim_text:
+            raise ValueError(f"Overbroad or unsupported claim: {phrase}")
 
     candidate = f"{data['topic']} {headline}"
     for item in recent[-35:]:
