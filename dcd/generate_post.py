@@ -193,7 +193,6 @@ Recent generated posts to avoid repeating:
         message = client.messages.create(
             model="claude-sonnet-5",
             max_tokens=1400,
-            temperature=0.9,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = "".join(block.text for block in message.content if block.type == "text")
