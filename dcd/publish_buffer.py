@@ -95,6 +95,7 @@ mutation CreatePost {{
     schedulingType: automatic
     mode: shareNow
     assets: [{{ image: {{ url: {image} }} }}]
+    metadata: {{ instagram: {{ type: post, shouldShareToFeed: true }} }}
   }}) {{
     ... on PostActionSuccess {{
       post {{ id text dueAt status assets {{ id mimeType }} }}
