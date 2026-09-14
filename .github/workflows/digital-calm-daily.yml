@@ -1,0 +1,143 @@
+name: Digital Calm Daily Instagram
+
+on:
+  schedule:
+    # Run at both UTC offsets used by America/Chicago. The clock gate below
+    # allows only the one that corresponds to 9:45 AM Central to continue.
+    - cron: "45 14 * * *"
+    - cron: "45 15 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: digital-calm-daily-instagram
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check schedule and required connection
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
+        run: |
+          set -euo pipefail
+          LOCAL_TIME=$(TZ=America/Chicago date +%H:%M)
+          echo "Central time: ${LOCAL_TIME}"
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TIME_OK=true
+          elif [ "$LOCAL_TIME" = "09:45" ]; then
+            TIME_OK=true
+          else
+            TIME_OK=false
+          fi
+
+          if [ -n "$DCD_BUFFER_API_KEY" ]; then
+            CONNECTION_OK=true
+          else
+            CONNECTION_OK=false
+            echo "DCD_BUFFER_API_KEY is not configured yet; skipping safely."
+          fi
+
+          if [ "$TIME_OK" = true ] && [ "$CONNECTION_OK" = true ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repo
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Generate post and graphic
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 dcd/run_daily.py
+
+      - name: Commit post memory and image
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "digital-calm-daily-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add dcd/history.json docs/dcd-posts/*.jpg
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Digital Calm Daily: $(TZ=America/Chicago date +%Y-%m-%d)"
+
+            for attempt in 1 2 3; do
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+              if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "Unable to push Digital Calm Daily post after 3 attempts"
+                exit 1
+              fi
+              sleep $((attempt * 5))
+            done
+          fi
+
+      - name: Build public image URL
+        if: steps.gate.outputs.run == 'true'
+        id: url
+        run: |
+          set -euo pipefail
+          IMG_PATH=$(cat dcd/_today_image_path.txt)
+          IMAGE_COMMIT=$(git rev-parse HEAD)
+          IMAGE_URL="https://raw.githubusercontent.com/${{ github.repository }}/${IMAGE_COMMIT}/${IMG_PATH}"
+          echo "image_url=${IMAGE_URL}" >> "$GITHUB_OUTPUT"
+          echo "Public image: ${IMAGE_URL}"
+
+      - name: Verify image is publicly reachable
+        if: steps.gate.outputs.run == 'true'
+        env:
+          IMAGE_URL: ${{ steps.url.outputs.image_url }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if curl --location --fail --silent --show-error \
+              --output /tmp/dcd-post.jpg "$IMAGE_URL"; then
+              CONTENT_TYPE=$(file --brief --mime-type /tmp/dcd-post.jpg || true)
+              if [ "$CONTENT_TYPE" = "image/jpeg" ]; then
+                echo "Digital Calm Daily JPEG is public and ready for Buffer."
+                exit 0
+              fi
+              echo "URL responded, but content type was ${CONTENT_TYPE:-unknown}."
+            else
+              echo "Image not reachable yet (attempt ${attempt}/12)."
+            fi
+            sleep 5
+          done
+          echo "Generated image never became publicly reachable."
+          exit 1
+
+      - name: Publish through Buffer
+        if: steps.gate.outputs.run == 'true'
+        env:
+          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
+          DCD_BUFFER_CHANNEL_ID: ${{ secrets.DCD_BUFFER_CHANNEL_ID }}
+        run: |
+          python3 dcd/publish_buffer.py \
+            "${{ steps.url.outputs.image_url }}" \
+            dcd/_today_caption.txt
