@@ -50,10 +50,18 @@ def main() -> None:
         json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
+    run([
+        sys.executable,
+        str(HERE / "render_reel.py"),
+        str(HERE / "_today_post.json"),
+    ])
+
     print(f"Category: {data['category']}")
     print(f"Topic: {data['topic']}")
     print(f"Headline: {data['headline']}")
     print(f"Image: {relative_image_path}")
+    reel_path = (HERE / "_today_reel_path.txt").read_text(encoding="utf-8").strip()
+    print(f"Quick how-to Reel: {reel_path or 'not applicable'}")
 
 
 if __name__ == "__main__":

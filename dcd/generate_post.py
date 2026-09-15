@@ -77,6 +77,17 @@ Graphic rules:
 - Supporting text should explain the action, not repeat the headline.
 - Supporting text must be accurate and modest; avoid universal claims.
 
+Optional quick how-to Reel:
+- Set create_quick_how_to_reel to true only when the same daily tip is clearer
+  as a short visual sequence of 2-4 concrete actions.
+- Good candidates include iPhone settings, simple app actions, AI prompts,
+  digital organization, and useful-tool demonstrations.
+- Set it to false for general encouragement, news, warnings, definitions, or
+  any subject where a short demonstration would be forced or misleading.
+- When true, reel_steps must contain 2-4 brief, accurate steps (maximum 58
+  characters each) and reel_hook must be a useful 3-7 word promise.
+- When false, return an empty reel_steps array and an empty reel_hook.
+
 Caption rules:
 - Start with: ⚡ TODAY’S 30-SECOND TECH WIN
 - Use short paragraphs of 1-2 sentences.
@@ -98,7 +109,10 @@ Return ONLY valid JSON with these keys:
   "supporting_text": "exact on-image supporting text",
   "caption": "ready-to-post caption with real blank lines",
   "hashtags": ["#DigitalCalmDaily", "#TechMadeSimple", "..."],
-  "visual_symbol": "one simple object or symbol that visually represents the tip"
+  "visual_symbol": "one simple object or symbol that visually represents the tip",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "short matching Reel hook",
+  "reel_steps": ["First brief action", "Second brief action"]
 }
 """.strip()
 
@@ -131,7 +145,10 @@ def similarity(a: str, b: str) -> float:
 
 
 def validate(data: dict, recent: list[dict]) -> None:
-    required = {"topic", "headline", "supporting_text", "caption", "hashtags", "visual_symbol"}
+    required = {
+        "topic", "headline", "supporting_text", "caption", "hashtags",
+        "visual_symbol", "create_quick_how_to_reel", "reel_hook", "reel_steps",
+    }
     missing = required - set(data)
     if missing:
         raise ValueError(f"Missing fields: {sorted(missing)}")
@@ -140,6 +157,9 @@ def validate(data: dict, recent: list[dict]) -> None:
     supporting = str(data["supporting_text"]).strip()
     caption = str(data["caption"]).strip()
     hashtags = data["hashtags"]
+    make_reel = data["create_quick_how_to_reel"]
+    reel_hook = str(data["reel_hook"]).strip()
+    reel_steps = data["reel_steps"]
 
     if not headline or len(headline) > 42:
         raise ValueError("Headline length invalid")
@@ -147,6 +167,19 @@ def validate(data: dict, recent: list[dict]) -> None:
         raise ValueError("Supporting text length invalid")
     if not isinstance(hashtags, list) or not 5 <= len(hashtags) <= 8:
         raise ValueError("Need 5-8 hashtags")
+    if not isinstance(make_reel, bool):
+        raise ValueError("create_quick_how_to_reel must be true or false")
+    if not isinstance(reel_steps, list):
+        raise ValueError("reel_steps must be an array")
+    if make_reel:
+        if not reel_hook or len(reel_hook) > 48:
+            raise ValueError("Reel hook length invalid")
+        if not 2 <= len(reel_steps) <= 4:
+            raise ValueError("A quick how-to Reel needs 2-4 steps")
+        if any(not str(step).strip() or len(str(step).strip()) > 58 for step in reel_steps):
+            raise ValueError("Each Reel step must be 1-58 characters")
+    elif reel_hook or reel_steps:
+        raise ValueError("Non-Reel posts must use an empty reel_hook and reel_steps")
     if "#DigitalCalmDaily" not in hashtags or "#TechMadeSimple" not in hashtags:
         raise ValueError("Required hashtags missing")
     if "Save this tip for later." not in caption:

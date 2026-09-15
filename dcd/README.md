@@ -18,6 +18,11 @@ This folder is isolated from the existing Black Tie Intel bot.
 - Creates a consistent faceless Digital Calm Daily graphic locally with Pillow.
 - Preserves clean Instagram paragraph spacing.
 - Sends the finished image and caption to Buffer with `shareNow`.
+- Decides whether the day's message genuinely benefits from a short visual
+  walkthrough. When it does, it creates a matching vertical quick how-to Reel.
+- Publishes applicable Reels at 5:30 PM America/Chicago through Buffer. Topics
+  that are better as a single graphic do not create or publish a Reel.
+- Prevents a second run from publishing the same daily graphic or Reel twice.
 
 ## One-time connection required
 

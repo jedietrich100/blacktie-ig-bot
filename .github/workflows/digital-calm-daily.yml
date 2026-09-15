@@ -62,23 +62,43 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Prevent a duplicate daily post
         if: steps.gate.outputs.run == 'true'
-        run: pip install -r requirements.txt
+        id: duplicate
+        run: |
+          TODAY=$(TZ=America/Chicago date +%Y-%m-%d)
+          if [ -f "docs/dcd-posts/${TODAY}.jpg" ]; then
+            echo "Today's Digital Calm Daily post already exists; skipping."
+            echo "new_post=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_post=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Generate post and graphic
-        if: steps.gate.outputs.run == 'true'
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
+        run: |
+          pip install -r requirements.txt
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+
+      - name: Generate post, graphic, and optional quick how-to Reel
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 dcd/run_daily.py
 
       - name: Commit post memory and image
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
         run: |
           set -euo pipefail
           git config user.name "digital-calm-daily-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add dcd/history.json docs/dcd-posts/*.jpg
+          git add dcd/history.json docs/dcd-posts
+          if [ -d docs/dcd-reels ]; then
+            git add docs/dcd-reels
+          fi
 
           if git diff --cached --quiet; then
             echo "Nothing to commit"
@@ -99,7 +119,7 @@ jobs:
           fi
 
       - name: Build public image URL
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
         id: url
         run: |
           set -euo pipefail
@@ -110,7 +130,7 @@ jobs:
           echo "Public image: ${IMAGE_URL}"
 
       - name: Verify image is publicly reachable
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
         env:
           IMAGE_URL: ${{ steps.url.outputs.image_url }}
         run: |
@@ -133,7 +153,7 @@ jobs:
           exit 1
 
       - name: Publish through Buffer
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && steps.duplicate.outputs.new_post == 'true'
         env:
           DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
           DCD_BUFFER_CHANNEL_ID: ${{ secrets.DCD_BUFFER_CHANNEL_ID }}

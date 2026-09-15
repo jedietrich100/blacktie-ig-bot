@@ -1,0 +1,147 @@
+name: Digital Calm Daily Quick How-To Reel
+
+on:
+  schedule:
+    # 5:30 PM America/Chicago across daylight and standard time.
+    - cron: "30 22 * * *"
+    - cron: "30 23 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: digital-calm-daily-quick-how-to-reel
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post-reel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check schedule and required connection
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
+        run: |
+          set -euo pipefail
+          LOCAL_HOUR=$(TZ=America/Chicago date +%H)
+          LOCAL_MINUTE=$(TZ=America/Chicago date +%M)
+          echo "Central time: ${LOCAL_HOUR}:${LOCAL_MINUTE}"
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TIME_OK=true
+          elif [ "$LOCAL_HOUR" = "17" ] && [ "$LOCAL_MINUTE" -ge 30 ]; then
+            TIME_OK=true
+          else
+            TIME_OK=false
+          fi
+
+          if [ "$TIME_OK" = true ] && [ -n "$DCD_BUFFER_API_KEY" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repo
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find today's optional Reel
+        if: steps.gate.outputs.run == 'true'
+        id: reel
+        run: |
+          set -euo pipefail
+          TODAY=$(TZ=America/Chicago date +%Y-%m-%d)
+          VIDEO_PATH="docs/dcd-reels/${TODAY}.mp4"
+          CAPTION_PATH="docs/dcd-reels/${TODAY}.txt"
+
+          if [ ! -f "$VIDEO_PATH" ] || [ ! -f "$CAPTION_PATH" ]; then
+            echo "Today's message did not call for a quick how-to Reel."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if python3 - "$TODAY" <<'PY'
+          import json, pathlib, sys
+          path = pathlib.Path("dcd/reel_history.json")
+          history = json.loads(path.read_text()) if path.exists() else []
+          raise SystemExit(0 if sys.argv[1] in history else 1)
+          PY
+          then
+            echo "Today's Reel was already published; skipping."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "today=${TODAY}" >> "$GITHUB_OUTPUT"
+            echo "video_path=${VIDEO_PATH}" >> "$GITHUB_OUTPUT"
+            echo "caption_path=${CAPTION_PATH}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.gate.outputs.run == 'true' && steps.reel.outputs.publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install publishing dependency
+        if: steps.gate.outputs.run == 'true' && steps.reel.outputs.publish == 'true'
+        run: pip install requests
+
+      - name: Build and verify public video URL
+        if: steps.gate.outputs.run == 'true' && steps.reel.outputs.publish == 'true'
+        id: url
+        env:
+          VIDEO_PATH: ${{ steps.reel.outputs.video_path }}
+        run: |
+          set -euo pipefail
+          VIDEO_COMMIT=$(git rev-parse HEAD)
+          VIDEO_URL="https://raw.githubusercontent.com/${{ github.repository }}/${VIDEO_COMMIT}/${VIDEO_PATH}"
+          echo "video_url=${VIDEO_URL}" >> "$GITHUB_OUTPUT"
+
+          for attempt in 1 2 3 4 5 6; do
+            if curl --location --fail --silent --show-error --output /tmp/dcd-reel.mp4 "$VIDEO_URL"; then
+              CONTENT_TYPE=$(file --brief --mime-type /tmp/dcd-reel.mp4 || true)
+              if [ "$CONTENT_TYPE" = "video/mp4" ]; then
+                echo "Digital Calm Daily Reel is public and ready for Buffer."
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "Reel never became publicly reachable."
+          exit 1
+
+      - name: Publish Reel through Buffer
+        if: steps.gate.outputs.run == 'true' && steps.reel.outputs.publish == 'true'
+        env:
+          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
+          DCD_BUFFER_CHANNEL_ID: ${{ secrets.DCD_BUFFER_CHANNEL_ID }}
+        run: |
+          python3 dcd/publish_buffer_reel.py \
+            "${{ steps.url.outputs.video_url }}" \
+            "${{ steps.reel.outputs.caption_path }}"
+
+      - name: Record successful Reel publication
+        if: steps.gate.outputs.run == 'true' && steps.reel.outputs.publish == 'true'
+        env:
+          TODAY: ${{ steps.reel.outputs.today }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path("dcd/reel_history.json")
+          history = json.loads(path.read_text()) if path.exists() else []
+          today = os.environ["TODAY"]
+          if today not in history:
+              history.append(today)
+          path.write_text(json.dumps(history[-120:], indent=2) + "\n")
+          PY
+          git config user.name "digital-calm-daily-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add dcd/reel_history.json
+          git commit -m "Digital Calm Daily Reel published: ${TODAY}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
