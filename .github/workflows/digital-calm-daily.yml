@@ -2,8 +2,9 @@ name: Digital Calm Daily Instagram
 
 on:
   schedule:
-    # Run at both UTC offsets used by America/Chicago. The clock gate below
-    # allows only the one that corresponds to 9:45 AM Central to continue.
+    # Run at both UTC offsets used by America/Chicago. The gate below selects
+    # the correct cron for the current daylight/standard-time offset, so normal
+    # GitHub scheduling delays do not cause the post to be skipped.
     - cron: "45 14 * * *"
     - cron: "45 15 * * *"
   workflow_dispatch: {}
@@ -23,18 +24,25 @@ jobs:
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
           DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
         run: |
           set -euo pipefail
-          LOCAL_TIME=$(TZ=America/Chicago date +%H:%M)
-          echo "Central time: ${LOCAL_TIME}"
+          LOCAL_TIME=$(TZ=America/Chicago date +%Y-%m-%d\ %H:%M:%S)
+          UTC_OFFSET=$(TZ=America/Chicago date +%z)
+          echo "Central time now: ${LOCAL_TIME}"
+          echo "Central UTC offset: ${UTC_OFFSET}"
+          echo "Triggered cron: ${EVENT_SCHEDULE:-manual}"
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             TIME_OK=true
-          elif [ "$LOCAL_TIME" = "09:45" ]; then
+          elif [ "$UTC_OFFSET" = "-0500" ] && [ "$EVENT_SCHEDULE" = "45 14 * * *" ]; then
+            TIME_OK=true
+          elif [ "$UTC_OFFSET" = "-0600" ] && [ "$EVENT_SCHEDULE" = "45 15 * * *" ]; then
             TIME_OK=true
           else
             TIME_OK=false
+            echo "This is the inactive DST/standard-time cron; skipping safely."
           fi
 
           if [ -n "$DCD_BUFFER_API_KEY" ]; then
