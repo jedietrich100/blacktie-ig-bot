@@ -1,5 +1,5 @@
 """
-Generate one original Black Tie Intel quote for today's editorial theme.
+Generate one original Black Tie Intel insight for today's editorial theme.
 
 The prompt is intentionally strict: the image renderer works best with a short
 single-sentence thought that has one clear tension and a memorable landing.
@@ -24,9 +24,12 @@ Black Tie Intel voice requirements:
 - Aim for 9-18 words; never exceed 20 words.
 - Make it sharp enough to stop a fast Instagram scroll.
 - Prefer a useful tension, contrast, or unexpected insight over a generic slogan.
-- Use confident, sophisticated language suitable for executives, founders, and informed professionals.
+- Use confident, sophisticated language for curious people who want to understand where the world is going.
 - The final few words should land with impact.
 - Avoid clichés, motivational filler, buzzword soup, and constructions like "X isn't just Y".
+- Never write generic advice about mindset, hustle, leadership, productivity, cybersecurity hygiene, or entrepreneurship.
+- The reader should think: "I did not see it that way, and this may actually matter."
+- Favor concrete forces and human consequences over vague words such as innovation, change, success, and future.
 - No attribution, quotation marks, hashtags, emojis, labels, preamble, or explanation.
 """.strip()
 
@@ -74,9 +77,9 @@ def main():
             + "\n- ".join(recent_quotes)
         )
 
-    # About one in three posts gets the broader international/connected-systems
-    # perspective. This keeps the global identity present but understated.
-    use_global_lens = random.random() < 0.35
+    # Most posts should feel internationally aware; the explicit Global Intel
+    # day always receives this lens.
+    use_global_lens = day_config["theme"] == "Global Intel" or random.random() < 0.65
     global_block = f"\n\n{GLOBAL_LENS_GUIDE}" if use_global_lens else ""
 
     prompt = (
