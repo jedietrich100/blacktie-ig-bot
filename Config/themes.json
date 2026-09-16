@@ -1,30 +1,30 @@
 {
   "monday": {
-    "theme": "Motivation & Mindset",
-    "prompt": "Write a short, punchy motivational quote (max 20 words) about discipline, mindset, or momentum. Suitable for a business/security-focused audience. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "The Future of Power",
+    "prompt": "Write one sharp, original insight (max 20 words) about how AI, robotics, autonomous systems, advanced energy, space, or defense technology is reshaping power. Make the idea specific and consequential rather than motivational. No hashtags, emojis, attribution, or unsupported factual claims; return only the insight."
   },
   "tuesday": {
-    "theme": "Cybersecurity Insight",
-    "prompt": "Write a short, punchy quote or one-liner (max 20 words) about cybersecurity awareness, digital risk, or protecting what matters. Should feel authoritative, not preachy. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "Tomorrow's World",
+    "prompt": "Write one vivid, original insight (max 20 words) about future cities, transportation, humanoid robots, longevity, smart homes, or emerging infrastructure. Show how ordinary life could materially change. Avoid generic futurism. No hashtags, emojis, attribution, or unsupported factual claims; return only the insight."
   },
   "wednesday": {
-    "theme": "AI & Technology",
-    "prompt": "Write a short, punchy quote (max 20 words) about artificial intelligence, automation, or the pace of technological change. Thought-provoking, not hype-y. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "Autonomous Intelligence",
+    "prompt": "Write one sophisticated insight (max 20 words) about AI agents or machines moving from answering questions to taking independent action. Focus on authority, judgment, trust, or accountability—not productivity tips or hype. No hashtags, emojis, attribution, or unsupported factual claims; return only the insight."
   },
   "thursday": {
-    "theme": "Leadership & Strategy",
-    "prompt": "Write a short, punchy quote (max 20 words) about leadership, decision-making, or business strategy. Should sound like it belongs in a boardroom. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "Global Intel",
+    "prompt": "Write one incisive, nonpolitical insight (max 20 words) about innovation moving across China, Europe, the Middle East, Japan, South Korea, Africa, or interconnected markets. Make the global perspective feel natural and strategic, without naming a current event or inventing news. No hashtags, emojis, or attribution; return only the insight."
   },
   "friday": {
-    "theme": "Future of Work & Innovation",
-    "prompt": "Write a short, punchy quote (max 20 words) about the future of work, innovation, or adapting to change. Forward-looking tone. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "The Human Question",
+    "prompt": "Write one elegant, provocative insight (max 20 words) about what remains uniquely human as machines transform work, creativity, relationships, privacy, or trust. Create genuine tension without becoming anti-technology. No hashtags, emojis, attribution, or unsupported factual claims; return only the insight."
   },
   "saturday": {
-    "theme": "Founder & Entrepreneur Grind",
-    "prompt": "Write a short, punchy quote (max 20 words) about entrepreneurship, building something from nothing, or the grind behind success. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "Signals",
+    "prompt": "Write one intriguing insight (max 20 words) about an overlooked technology signal: a quiet invention, scientific direction, infrastructure shift, or capability that could become important. Emphasize why weak signals deserve attention without pretending a speculative idea is established fact. No hashtags, emojis, or attribution; return only the insight."
   },
   "sunday": {
-    "theme": "Reflection & Reset",
-    "prompt": "Write a short, calm, reflective quote (max 20 words) about rest, perspective, or resetting before a new week. Lighter and more personal in tone than the rest of the week. No hashtags, no emojis, no attribution, just the quote text."
+    "theme": "The Long View",
+    "prompt": "Write one calm but memorable insight (max 20 words) about seeing beyond the weekly news cycle to the deeper direction of technology and humanity. It should feel cinematic, intelligent, and forward-looking—not motivational or sentimental. No hashtags, emojis, attribution, or unsupported factual claims; return only the insight."
   }
 }
