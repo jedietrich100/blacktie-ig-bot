@@ -14,33 +14,33 @@ import sys
 HERE = os.path.dirname(__file__)
 
 THEME_CAPTIONS = {
-    "Motivation & Mindset": (
-        "Momentum is rarely dramatic. It is built in the decisions nobody applauds.",
-        "#Mindset #Discipline #Momentum",
+    "The Future of Power": (
+        "Power is being redesigned—by systems that can see, decide, move, and scale.",
+        "#FutureOfPower #AI #Robotics #StrategicIntelligence",
     ),
-    "Cybersecurity Insight": (
-        "Good security starts before the alert.",
-        "#Cybersecurity #DigitalRisk #SecurityAwareness",
+    "Tomorrow's World": (
+        "The future becomes real when it changes how an ordinary day feels.",
+        "#TomorrowsWorld #FutureCities #EmergingTechnology",
     ),
-    "AI & Technology": (
-        "The advantage goes to people who turn new technology into better judgment.",
-        "#ArtificialIntelligence #Technology #AI",
+    "Autonomous Intelligence": (
+        "The next AI question is not only what it knows, but what we allow it to do.",
+        "#AIAgents #AutonomousAI #Trust #ArtificialIntelligence",
     ),
-    "Leadership & Strategy": (
-        "Strategy becomes visible when a real decision has to be made.",
-        "#Leadership #Strategy #DecisionMaking",
+    "Global Intel": (
+        "The most important shifts rarely respect borders—or arrive from only one direction.",
+        "#GlobalIntel #TechnologyTrends #WorldInMotion",
     ),
-    "Future of Work & Innovation": (
-        "Change rewards the people who prepare before adaptation becomes urgent.",
-        "#FutureOfWork #Innovation #Technology",
+    "The Human Question": (
+        "As machines gain capability, human judgment becomes more—not less—consequential.",
+        "#HumanFuture #TechnologyAndSociety #AI",
     ),
-    "Founder & Entrepreneur Grind": (
-        "Building well is quieter than the internet makes it look.",
-        "#Entrepreneurship #Founders #Business",
+    "Signals": (
+        "The edge often begins as a faint signal most people dismiss as noise.",
+        "#Signals #EmergingTech #WhatToWatch",
     ),
-    "Reflection & Reset": (
-        "Perspective is productive, too.",
-        "#Reflection #Perspective #Reset",
+    "The Long View": (
+        "Headlines describe the moment. Direction reveals what the moment is becoming.",
+        "#TheLongView #Future #AChangeInDirection",
     ),
 }
 
@@ -63,7 +63,7 @@ def build_caption(quote, theme):
     return (
         f"{quote}\n\n"
         f"{context_line}\n\n"
-        "What’s your read?\n\n"
+        "Worth watching. What’s your read?\n\n"
         f"#BlackTieIntel {theme_tags}"
     )
 
