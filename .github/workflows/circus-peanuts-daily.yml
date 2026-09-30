@@ -1,0 +1,73 @@
+name: Circus Peanuts Daily
+on:
+  schedule:
+    - cron: '17 14 * * *'
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Submit today to Circus Buffer channel (default previews only)'
+        type: boolean
+        default: false
+concurrency:
+  group: circus-peanuts-daily
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  circus:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          ENABLED: ${{ vars.CIRCUS_ENABLED }}
+          MANUAL_PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          echo 'run=false' >> "$GITHUB_OUTPUT"
+          echo 'publish=false' >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = workflow_dispatch ]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+            if [ "$MANUAL_PUBLISH" = true ] && [ "$ENABLED" = true ]; then
+              echo 'publish=true' >> "$GITHUB_OUTPUT"
+            fi
+          elif [ "$ENABLED" = true ]; then
+            OFFSET=$(TZ=America/Chicago date +%z)
+            if { [ "$OFFSET" = -0500 ] && [ "$CRON" = '17 14 * * *' ]; } ||
+               { [ "$OFFSET" = -0600 ] && [ "$CRON" = '17 15 * * *' ]; }; then
+              echo 'run=true' >> "$GITHUB_OUTPUT"
+              echo 'publish=true' >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: '3.11'
+      - name: Install Circus dependencies only
+        if: steps.gate.outputs.run == 'true'
+        run: pip install -r circus/requirements.txt
+      - name: Preview or submit Circus only
+        if: steps.gate.outputs.run == 'true'
+        env:
+          CIRCUS_PUBLISH: ${{ steps.gate.outputs.publish }}
+          CIRCUS_BUFFER_API_KEY: ${{ secrets.CIRCUS_BUFFER_API_KEY }}
+          CIRCUS_BUFFER_CHANNEL_ID: ${{ secrets.CIRCUS_BUFFER_CHANNEL_ID }}
+          CIRCUS_BUFFER_ORGANIZATION_ID: ${{ secrets.CIRCUS_BUFFER_ORGANIZATION_ID }}
+          CIRCUS_EXPECTED_CHANNEL_NAME: ${{ vars.CIRCUS_EXPECTED_CHANNEL_NAME }}
+          CIRCUS_REPOSITORY: ${{ github.repository }}
+        run: python circus/daily.py
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.run == 'true'
+        with:
+          name: circus-preview-${{ github.run_id }}
+          path: circus/preview/
+          if-no-files-found: ignore
