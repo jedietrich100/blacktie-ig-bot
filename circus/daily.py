@@ -1,4 +1,4 @@
-"""Isolated Circus preview/render/Buffer submission. No imports from BTI or DCD."""
+"""Isolated Circus preview/render/direct Instagram submission. No imports from BTI or DCD."""
 import datetime as dt
 import hashlib
 import io
@@ -19,7 +19,7 @@ DAY = dt.datetime.now(ZoneInfo('America/Chicago')).date().isoformat()
 OUT = Path('docs/circus-posts') / DAY
 STATE = Path('circus/state') / f'{DAY}.json'
 PREVIEW = Path('circus/preview')
-API = 'https://api.buffer.com'
+API = 'https://graph.instagram.com/v24.0'
 
 
 def need(key):
@@ -56,28 +56,14 @@ def persist(message):
             time.sleep(5)
 
 
-def gql(key, query):
-    # One attempt for mutations. Unknown outcome must never trigger a blind retry.
-    response = requests.post(API, headers={'Authorization': f'Bearer {key}'},
-                             json={'query': query}, timeout=45)
+def ig_post(path, token, data):
+    response = requests.post(f'{API}/{path}', data={**data, 'access_token': token}, timeout=45)
     if response.status_code != 200:
-        raise RuntimeError(f'Buffer HTTP {response.status_code}; inspect Buffer before retry')
+        raise RuntimeError(f'Instagram HTTP {response.status_code}')
     payload = response.json()
-    if payload.get('errors') or not payload.get('data'):
-        raise RuntimeError('Buffer GraphQL error; inspect Buffer before retry')
-    return payload['data']
-
-
-def validate_channel(key, channel_id, organization_id, expected_name):
-    query = ('query { channels(input: { organizationId: ' + json.dumps(organization_id)
-             + ' }) { id name service } }')
-    channels = gql(key, query)['channels']
-    matches = [c for c in channels if str(c['id']) == channel_id]
-    if len(matches) != 1:
-        raise RuntimeError('Configured Circus channel not uniquely accessible')
-    c = matches[0]
-    if str(c['service']).lower() != 'instagram' or c['name'] != expected_name:
-        raise RuntimeError('Circus channel identity mismatch; refusing submission')
+    if not payload.get('id'):
+        raise RuntimeError('Instagram did not confirm the request')
+    return str(payload['id'])
 
 
 def render():
@@ -119,35 +105,32 @@ def main():
     (PREVIEW / 'post.jpg').write_bytes(image)
     (PREVIEW / 'caption.txt').write_text(caption)
     if os.environ.get('CIRCUS_PUBLISH') != 'true':
-        print('Preview only: no repository write and no Buffer mutation.')
+        print('Preview only: no repository write and no Instagram mutation.')
         return
 
-    key = need('CIRCUS_BUFFER_API_KEY')
-    channel = need('CIRCUS_BUFFER_CHANNEL_ID')
-    organization = need('CIRCUS_BUFFER_ORGANIZATION_ID')
-    expected = need('CIRCUS_EXPECTED_CHANNEL_NAME')
+    token = need('CIRCUS_IG_ACCESS_TOKEN')
+    user_id = need('CIRCUS_IG_USER_ID')
     repository = need('CIRCUS_REPOSITORY')
     if repository != 'jedietrich100/blacktie-ig-bot':
         raise RuntimeError('Unexpected repository; refusing submission')
-    validate_channel(key, channel, organization, expected)
 
     state = json.loads(STATE.read_text()) if STATE.exists() else None
-    if state and state['channel_id'] != channel:
-        raise RuntimeError('Stored Circus channel differs from configured channel')
-    if state and state['phase'] == 'accepted':
-        print('Already accepted by Buffer today; skipping.')
+    if state and state.get('ig_user_id') != user_id:
+        raise RuntimeError('Stored Circus Instagram user differs from configured user')
+    if state and state.get('phase') == 'published':
+        print('Already published today; skipping.')
         return
-    if state and state['phase'] != 'prepared':
-        raise RuntimeError('Uncertain prior submission: reconcile in Buffer before retry')
+    if state and state.get('phase') != 'prepared':
+        raise RuntimeError('Uncertain prior submission: verify Instagram before retry')
 
     if not state:
         OUT.mkdir(parents=True, exist_ok=True)
         (OUT / 'post.jpg').write_bytes(image)
         (OUT / 'caption.txt').write_text(caption)
-        state = {'date': DAY, 'channel_id': channel, 'phase': 'prepared'}
+        state = {'date': DAY, 'ig_user_id': user_id, 'phase': 'prepared'}
         write_state(state)
         persist(f'Circus prepared: {DAY}')
-    # Reuse prepared content on retry, even if generation code has changed.
+
     caption = (OUT / 'caption.txt').read_text()
     url = f'https://raw.githubusercontent.com/{repository}/{git("rev-parse", "HEAD")}/{OUT}/post.jpg'
     for attempt in range(12):
@@ -158,36 +141,36 @@ def main():
             public.verify()
             if public.format != 'JPEG':
                 raise RuntimeError('Public asset is not JPEG')
-            if hashlib.sha256(r.content).digest() != hashlib.sha256((OUT / 'post.jpg').read_bytes()).digest():
-                raise RuntimeError('Public asset differs from prepared image')
             break
         except (requests.RequestException, OSError):
             if attempt == 11:
                 raise RuntimeError('Public Circus JPEG unavailable') from None
             time.sleep(5)
 
-    # Persist intent BEFORE the non-idempotent API call. A crash/timeout now
-    # deliberately blocks reruns instead of risking a duplicate Instagram post.
     state.update(phase='submitting', image_url=url)
     write_state(state)
     persist(f'Circus submitting: {DAY}')
-    query = '''mutation { createPost(input: {
-      text: CAPTION, channelId: CHANNEL,
-      schedulingType: automatic, mode: shareNow,
-      assets: [{ image: { url: IMAGE } }],
-      metadata: { instagram: { type: post, shouldShareToFeed: true } }
-    }) {
-      ... on PostActionSuccess { post { id status } }
-      ... on MutationError { message }
-    } }'''.replace('CAPTION', json.dumps(caption)).replace('CHANNEL', json.dumps(channel)).replace('IMAGE', json.dumps(url))
-    result = gql(key, query).get('createPost') or {}
-    post = result.get('post') or {}
-    if not post.get('id'):
-        raise RuntimeError('Buffer did not confirm acceptance; reconcile before retry')
-    state.update(phase='accepted', buffer_post_id=post['id'], buffer_status=post.get('status'))
+    creation_id = ig_post(f'{user_id}/media', token, {'image_url': url, 'caption': caption})
+
+    status = None
+    for _ in range(12):
+        check = requests.get(f'{API}/{creation_id}',
+            params={'fields': 'status_code', 'access_token': token}, timeout=30)
+        if check.status_code == 200:
+            status = check.json().get('status_code')
+            if status == 'FINISHED':
+                break
+            if status in ('ERROR', 'EXPIRED'):
+                raise RuntimeError(f'Instagram container status {status}')
+        time.sleep(5)
+    if status != 'FINISHED':
+        raise RuntimeError('Instagram container not ready; verify before retry')
+
+    media_id = ig_post(f'{user_id}/media_publish', token, {'creation_id': creation_id})
+    state.update(phase='published', creation_id=creation_id, instagram_media_id=media_id)
     write_state(state)
-    persist(f'Circus accepted by Buffer: {DAY}')
-    print(f'Buffer accepted post {post["id"]}; Instagram delivery must be verified separately.')
+    persist(f'Circus published: {DAY}')
+    print(f'Instagram published Circus media {media_id}.')
 
 
 if __name__ == '__main__':
@@ -195,5 +178,5 @@ if __name__ == '__main__':
         main()
     except Exception:
         # Suppress raw requests exceptions that can expose credentials in diagnostics.
-        print('::error::Circus failed. Check configuration, repository state and Buffer; do not blindly resubmit.')
+        print('::error::Circus failed safely. Check configuration and Instagram state; do not blindly resubmit.')
         raise SystemExit(1)
