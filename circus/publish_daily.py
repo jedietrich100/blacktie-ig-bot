@@ -138,10 +138,13 @@ def render(text, path):
             lines.append(line)
         if len(lines) * (size + 20) <= 560:
             break
-    y = 720 - len(lines) * (size + 20) / 2
+    y = 605 - len(lines) * (size + 20) / 2
     for line in lines:
         draw.text((540, y), line, font=f, fill='#22201E', anchor='mt')
         y += size + 20
+    mascot = Image.open(ROOT / 'assets/circus/candy-mascot.png').convert('RGBA')
+    mascot.thumbnail((310, 350), Image.Resampling.LANCZOS)
+    image.paste(mascot, (540 - mascot.width // 2, 1100 - mascot.height), mascot)
     draw.line([(430, 1110), (650, 1110)], fill='#D45432', width=4)
     draw.text((540, 1170), 'LAUGH MORE. WORRY LESS.', font=font(27), fill='#B24D32', anchor='mm')
     draw.text((540, 1235), '@circuspeanutsdaily', font=font(24), fill='#22201E', anchor='mm')
