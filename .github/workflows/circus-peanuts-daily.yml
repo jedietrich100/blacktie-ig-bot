@@ -3,33 +3,55 @@ on:
   schedule:
     - cron: '0 17 * * *'
     - cron: '0 18 * * *'
+  pull_request:
+    paths: ['circus/**', '.github/workflows/circus-peanuts-daily.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/circus-peanuts-daily.yml']
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Submit today to Circus Buffer channel (default previews only)'
+        description: 'Publish today to @circuspeanutsdaily (default previews only)'
         type: boolean
         default: false
 concurrency:
-  group: circus-peanuts-daily
+  group: circus-peanuts-daily-${{ github.event_name == 'pull_request' && github.event.number || 'live' }}
   cancel-in-progress: false
 permissions:
-  contents: write
+  contents: read
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Circus dependencies only
+        run: pip install -r circus/requirements.txt
+      - name: Test Circus safety and rendering
+        run: python -m unittest discover -s circus -p 'test_*.py' -v
   circus:
-    if: github.ref == 'refs/heads/main'
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - id: gate
         env:
           EVENT: ${{ github.event_name }}
           CRON: ${{ github.event.schedule }}
-          ENABLED: ${{ vars.CIRCUS_ENABLED }}
+          # Explicit go-live default. Set CIRCUS_ENABLED=false to pause Circus.
+          ENABLED: ${{ vars.CIRCUS_ENABLED || 'true' }}
           MANUAL_PUBLISH: ${{ inputs.publish }}
         run: |
           set -euo pipefail
           echo 'run=false' >> "$GITHUB_OUTPUT"
           echo 'publish=false' >> "$GITHUB_OUTPUT"
+          echo "Circus enabled: $ENABLED"
           if [ "$EVENT" = workflow_dispatch ]; then
             echo 'run=true' >> "$GITHUB_OUTPUT"
             if [ "$MANUAL_PUBLISH" = true ] && [ "$ENABLED" = true ]; then
@@ -37,8 +59,11 @@ jobs:
             fi
           elif [ "$ENABLED" = true ]; then
             OFFSET=$(TZ=America/Chicago date +%z)
-            if { [ "$OFFSET" = -0500 ] && [ "$CRON" = '0 17 * * *' ]; } ||
-               { [ "$OFFSET" = -0600 ] && [ "$CRON" = '0 18 * * *' ]; }; then
+            # One launch post when this workflow first lands on October 1.
+            # Later workflow edits do not publish outside the noon schedule.
+            if { [ "$EVENT" = push ] && [ "$(TZ=America/Chicago date +%F)" = '2026-10-01' ]; } ||
+               { [ "$EVENT" = schedule ] && [ "$OFFSET" = -0500 ] && [ "$CRON" = '0 17 * * *' ]; } ||
+               { [ "$EVENT" = schedule ] && [ "$OFFSET" = -0600 ] && [ "$CRON" = '0 18 * * *' ]; }; then
               echo 'run=true' >> "$GITHUB_OUTPUT"
               echo 'publish=true' >> "$GITHUB_OUTPUT"
             fi
@@ -55,14 +80,12 @@ jobs:
       - name: Install Circus dependencies only
         if: steps.gate.outputs.run == 'true'
         run: pip install -r circus/requirements.txt
-      - name: Preview or submit Circus only
+      - name: Preview or publish Circus only
         if: steps.gate.outputs.run == 'true'
         env:
           CIRCUS_PUBLISH: ${{ steps.gate.outputs.publish }}
           CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
           CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
-          CIRCUS_BUFFER_ORGANIZATION_ID: ${{ secrets.CIRCUS_BUFFER_ORGANIZATION_ID }}
-          CIRCUS_EXPECTED_CHANNEL_NAME: ${{ vars.CIRCUS_EXPECTED_CHANNEL_NAME }}
           CIRCUS_REPOSITORY: ${{ github.repository }}
         run: python circus/daily.py
       - uses: actions/upload-artifact@v4
