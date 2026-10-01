@@ -1,0 +1,159 @@
+name: Recover Black Tie October 1
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["codex/verify-blacktie-connection-20261001"]
+    paths: [".github/workflows/recover-blacktie-oct1.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: blacktie-daily-instagram-post
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Load pinned original Black Tie publisher and caption
+        uses: actions/checkout@v4
+        with:
+          ref: be068257dba9f000990edae0bf71987f3d8be371
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            Config
+      - name: Install publisher dependency
+        run: python3 -m pip install requests
+      - name: Verify account and duplicates, then recover original daily post
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime
+          import http.client
+          import json
+          import os
+          import re
+          import sys
+          
+          EXPECTED_USERNAME = "blacktie_intel"
+          EXPECTED_ID = "17841434445662205"
+          
+          def fail(message):
+              print("FAIL: " + message)
+              raise SystemExit(1)
+          
+          def request_json(path, token):
+              connection = http.client.HTTPSConnection("graph.instagram.com", timeout=30)
+              try:
+                  connection.request("GET", path, headers={"Authorization": "Bearer " + token})
+                  response = connection.getresponse()
+                  raw = response.read(262145)
+                  if len(raw) > 262144:
+                      fail("Instagram response exceeded the safety limit")
+                  try:
+                      payload = json.loads(raw)
+                  except (ValueError, UnicodeError):
+                      fail("Instagram returned an unreadable response")
+                  if response.status != 200:
+                      code = payload.get("error", {}).get("code") if isinstance(payload, dict) else None
+                      suffix = ("; Meta code " + str(code)) if type(code) is int else ""
+                      fail("Instagram HTTP " + str(response.status) + suffix)
+                  if not isinstance(payload, dict):
+                      fail("Instagram returned an unexpected response")
+                  return payload
+              except SystemExit:
+                  raise
+              except Exception:
+                  fail("Instagram request did not complete; no credential details logged")
+              finally:
+                  connection.close()
+          
+          def main():
+              token = os.environ.get("IG_ACCESS_TOKEN", "").strip()
+              if not token:
+                  fail("IG_ACCESS_TOKEN is missing")
+              account = request_json("/v26.0/me?fields=user_id,username,id", token)
+              account_id = str(account.get("user_id") or account.get("id") or "")
+              if account.get("username") != EXPECTED_USERNAME or account_id != EXPECTED_ID:
+                  fail("Saved token does not resolve to the expected Black Tie account")
+              print("PASS: authenticated @" + EXPECTED_USERNAME + " (" + EXPECTED_ID + ")")
+              media = request_json("/v26.0/" + EXPECTED_ID + "/media?fields=id,timestamp,permalink&limit=100", token)
+              rows = media.get("data")
+              if not isinstance(rows, list):
+                  fail("Could not inspect the account's recent media")
+              today = datetime.datetime.now(datetime.timezone.utc).date()
+              count = 0
+              for row in rows:
+                  try:
+                      stamp = datetime.datetime.fromisoformat(row["timestamp"].replace("Z", "+00:00"))
+                      if stamp.tzinfo is None:
+                          raise ValueError()
+                      posted_date = stamp.astimezone(datetime.timezone.utc).date()
+                  except (TypeError, KeyError, ValueError, AttributeError):
+                      fail("Recent-media timestamp could not be validated")
+                  if posted_date == today:
+                      count += 1
+                      media_id = str(row.get("id", ""))
+                      if re.fullmatch(r"[0-9]+", media_id):
+                          print("TODAY_MEDIA_ID: " + media_id)
+                      permalink = row.get("permalink", "")
+                      if isinstance(permalink, str) and re.fullmatch(r"https://www[.]instagram[.]com/(?:p|reel|tv)/[A-Za-z0-9_-]+/?", permalink):
+                          print("TODAY_PERMALINK: " + permalink)
+              print("CHECK_DATE_UTC: " + today.isoformat())
+              print("TODAY_MEDIA_COUNT: " + str(count))
+              print("PASS: read-only verification complete; no publishing requests made")
+              return count
+          
+          # Recover only the already-prepared October 1 post. Never regenerate assets.
+          RECOVERY_DATE = "2026-10-01"
+          IMAGE_URL = "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/be068257dba9f000990edae0bf71987f3d8be371/docs/posts/2026-10-01.jpg"
+          
+          def recover():
+              if datetime.datetime.now(datetime.timezone.utc).date().isoformat() != RECOVERY_DATE:
+                  fail("This one-day recovery has expired")
+              if main() != 0:
+                  fail("Black Tie already has media today; refusing a duplicate")
+          
+              import urllib.request
+              from scripts import publish_instagram as publisher
+              from scripts.run_daily import build_caption
+          
+              with open("Config/quote_history.json", encoding="utf-8") as handle:
+                  history = json.load(handle)
+              matches = [entry for entry in history if entry.get("date", "").startswith(RECOVERY_DATE)]
+              if len(matches) != 1:
+                  fail("Pinned original caption is missing or ambiguous")
+              caption = build_caption(matches[0]["quote"], "Global Intel")
+              try:
+                  with urllib.request.urlopen(IMAGE_URL, timeout=30) as response:
+                      if response.status != 200 or response.read(3) != b"\xff\xd8\xff":
+                          fail("Original public JPEG is not ready")
+              except Exception:
+                  fail("Could not verify the original public JPEG")
+              print("PASS: original public JPEG and caption verified")
+              token = os.environ["IG_ACCESS_TOKEN"].strip()
+              try:
+                  container_id = publisher.create_container(EXPECTED_ID, token, IMAGE_URL, caption)
+                  publisher.wait_until_ready(container_id, token)
+                  result = publisher.publish_container(EXPECTED_ID, token, container_id)
+              except Exception:
+                  fail("Publishing did not complete cleanly; inspect read-only state before any retry")
+              published_id = str(result.get("id", ""))
+              if not re.fullmatch(r"[0-9]+", published_id):
+                  fail("Instagram response had no valid published media ID; do not blindly retry")
+              print("PUBLISHED_MEDIA_ID: " + published_id)
+              confirmed = request_json("/v26.0/" + published_id + "?fields=id,permalink,timestamp", token)
+              if str(confirmed.get("id")) != published_id:
+                  fail("Published media readback did not match")
+              permalink = confirmed.get("permalink", "")
+              if not isinstance(permalink, str) or not re.fullmatch(r"https://www[.]instagram[.]com/(?:p|reel|tv)/[A-Za-z0-9_-]+/?", permalink):
+                  fail("Published media permalink was not confirmed")
+              print("PUBLISHED_PERMALINK: " + permalink)
+              print("PASS: Instagram publication and media readback verified")
+          
+          if __name__ == "__main__":
+              recover()
+          
+          PY
