@@ -1,8 +1,8 @@
 name: Circus Peanuts Daily
 on:
   schedule:
-    - cron: '17 14 * * *'
-    - cron: '17 15 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 18 * * *'
   workflow_dispatch:
     inputs:
       publish:
@@ -37,8 +37,8 @@ jobs:
             fi
           elif [ "$ENABLED" = true ]; then
             OFFSET=$(TZ=America/Chicago date +%z)
-            if { [ "$OFFSET" = -0500 ] && [ "$CRON" = '17 14 * * *' ]; } ||
-               { [ "$OFFSET" = -0600 ] && [ "$CRON" = '17 15 * * *' ]; }; then
+            if { [ "$OFFSET" = -0500 ] && [ "$CRON" = '0 17 * * *' ]; } ||
+               { [ "$OFFSET" = -0600 ] && [ "$CRON" = '0 18 * * *' ]; }; then
               echo 'run=true' >> "$GITHUB_OUTPUT"
               echo 'publish=true' >> "$GITHUB_OUTPUT"
             fi
