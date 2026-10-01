@@ -1,0 +1,28 @@
+name: Circus Luna morning special
+on:
+  schedule:
+    - cron: '0 12 2 10 *'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: circus-peanuts-daily
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install Pillow requests
+      - name: Publish Luna once on October 2 at 7 AM Central
+        env:
+          CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
+          CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
+        run: python circus/publish_luna.py

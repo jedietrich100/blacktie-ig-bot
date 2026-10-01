@@ -11,7 +11,7 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-LEDGER = ROOT / 'circus/ledger.json'
+LEDGER = ROOT / 'circus/luna-ledger.json'
 BASE = 'https://graph.instagram.com/v26.0'
 ZONE = ZoneInfo('America/Chicago')
 JOKES = [
@@ -85,7 +85,7 @@ def persist(ledger, message, extra=()):
     LEDGER.write_text(json.dumps(ledger, indent=2) + '\n')
     git('config', 'user.name', 'circus-peanuts-bot')
     git('config', 'user.email', 'actions@users.noreply.github.com')
-    git('add', 'circus/ledger.json', *extra)
+    git('add', 'circus/luna-ledger.json', *extra)
     if not git('diff', '--cached', '--name-only'):
         return
     git('commit', '-m', message)
@@ -155,12 +155,15 @@ def recent_today(user, token, today):
     rows = api('GET', user + '/media', token, params={'fields': 'id,timestamp,permalink,caption', 'limit': 100}).get('data')
     if not isinstance(rows, list):
         raise RuntimeError('Could not inspect recent Circus posts')
-    return [row for row in rows if 'Morning coffee with Luna Grace.' not in row.get('caption', '') and dt.datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00')).astimezone(ZONE).date().isoformat() == today]
+    return [row for row in rows if 'Morning coffee with Luna Grace.' in row.get('caption', '') and dt.datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00')).astimezone(ZONE).date().isoformat() == today]
 
 def main():
     now = dt.datetime.now(ZONE)
+    if now.date().isoformat() != '2026-10-02' or now.hour < 7 or now.hour >= 9:
+        print('Skipping outside one-time Luna publication window')
+        return
     # Use cron slot rather than runner start time: GitHub may delay scheduled jobs.
-    if os.getenv('GITHUB_EVENT_NAME') == 'schedule':
+    if False: # One-time window checked above
         event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
         scheduled = event.get('schedule', '')
         expected = '0 17 * * *' if now.utcoffset() == dt.timedelta(hours=-5) else '0 18 * * *'
