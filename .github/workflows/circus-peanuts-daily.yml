@@ -59,8 +59,8 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           CIRCUS_PUBLISH: ${{ steps.gate.outputs.publish }}
-          CIRCUS_BUFFER_API_KEY: ${{ secrets.CIRCUS_BUFFER_API_KEY }}
-          CIRCUS_BUFFER_CHANNEL_ID: ${{ secrets.CIRCUS_BUFFER_CHANNEL_ID }}
+          CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
+          CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
           CIRCUS_BUFFER_ORGANIZATION_ID: ${{ secrets.CIRCUS_BUFFER_ORGANIZATION_ID }}
           CIRCUS_EXPECTED_CHANNEL_NAME: ${{ vars.CIRCUS_EXPECTED_CHANNEL_NAME }}
           CIRCUS_REPOSITORY: ${{ github.repository }}
