@@ -11,11 +11,12 @@
     "verified_at": "2026-10-01T12:15:44.190930-05:00"
   },
   "2026-10-02": {
-    "state": "submitting",
+    "state": "published",
     "joke_index": 1,
     "caption": "I finally got 8 hours of sleep.\nIt took me three days, but I got it.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
     "image_path": "docs/circus-posts/2026-10-02.jpg",
     "image_commit": "e252783806621044a8d65231c44b83cf3b478527",
-    "container_id": "18142185802524928"
+    "container_id": "18142185802524928",
+    "media_id": "18107663525352769"
   }
 }
