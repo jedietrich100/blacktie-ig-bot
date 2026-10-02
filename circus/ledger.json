@@ -14,6 +14,7 @@
     "state": "prepared",
     "joke_index": 1,
     "caption": "I finally got 8 hours of sleep.\nIt took me three days, but I got it.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-02.jpg"
+    "image_path": "docs/circus-posts/2026-10-02.jpg",
+    "image_commit": "e252783806621044a8d65231c44b83cf3b478527"
   }
 }
