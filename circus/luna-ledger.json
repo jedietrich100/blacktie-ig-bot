@@ -1,8 +1,9 @@
 {
   "2026-10-02": {
-    "state": "prepared",
+    "state": "submitting",
     "caption": "Morning coffee with Luna Grace.\n\nToday\u2019s plan: Coffee. A little chaos. Repeat. \u2615\ud83d\udc3e\n\nSmile. Laugh. Repeat.\n\n#CircusPeanutsDaily #LunaGrace #EverydayHumor",
     "image_path": "docs/circus-posts/2026-10-02-luna.jpg",
-    "image_commit": "64eb37a9d2939532fa036462d24b0e619c5219f8"
+    "image_commit": "64eb37a9d2939532fa036462d24b0e619c5219f8",
+    "container_id": "18142113685524928"
   }
 }
