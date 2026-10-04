@@ -25,6 +25,7 @@
     "state": "prepared",
     "joke_index": 2,
     "caption": "Being an adult is mostly wondering why you walked into a room.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-04.jpg"
+    "image_path": "docs/circus-posts/2026-10-04.jpg",
+    "image_commit": "0a51a6c10855b90da0cc30f4fbcf270d1bb7f4f1"
   }
 }
