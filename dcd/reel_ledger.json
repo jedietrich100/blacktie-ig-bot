@@ -1,10 +1,12 @@
 {
   "2026-10-04": {
-    "state": "submitting",
+    "state": "submitted",
     "channel_id": "6a95de1e065799be46610ae6",
     "video_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/48630f26fe03e42b5fc470b83badd0b898f22957/docs/dcd-reels/2026-10-04.mp4",
     "caption_sha256": "39a7ee4ca0198061d4f7f70712c145b4417aa633bbb90a78d41482407b5539f1",
     "reserved_at": "2026-10-04T17:38:25.534914-05:00",
-    "run_id": "37240768113"
+    "run_id": "37240768113",
+    "buffer_post_id": "6ac2d56363761da98b5fca1e",
+    "accepted_at": "2026-10-04T17:38:37.410135-05:00"
   }
 }
