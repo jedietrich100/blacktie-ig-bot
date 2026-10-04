@@ -2,14 +2,13 @@ name: Circus Peanuts Daily
 
 on:
   schedule:
-    # Noon Chicago: CDT at 17 UTC, CST at 18 UTC. Script skips wrong DST slot.
+    # Noon Chicago, with backups at 12:17, 12:37, 13:17 and 13:37 local.
+    # The script selects the current UTC offset and keeps the 12:00-14:00 window.
     - cron: '0 17 * * *'
     - cron: '0 18 * * *'
+    # One shared backup expression avoids simultaneous DST-slot events.
+    - cron: '17,37 17-19 * * *'
   workflow_dispatch: {}
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/circus-peanuts-daily.yml'
 
 permissions:
   contents: write
@@ -32,6 +31,8 @@ jobs:
           python-version: '3.11'
       - name: Install Circus dependencies
         run: pip install Pillow requests
+      - name: Test Circus schedule and duplicate safeguards
+        run: python -m unittest discover -s circus/tests -v
       - name: Publish and verify Circus daily post
         env:
           CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}

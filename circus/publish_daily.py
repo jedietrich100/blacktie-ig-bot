@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / 'circus/ledger.json'
 BASE = 'https://graph.instagram.com/v26.0'
 ZONE = ZoneInfo('America/Chicago')
+SCHEDULES = {
+    -5: {'0 17 * * *', '17,37 17-19 * * *'},
+    -6: {'0 18 * * *', '17,37 17-19 * * *'},
+}
 JOKES = [
     'Life’s a circus.\nWe brought the peanuts.',
     'I finally got 8 hours of sleep.\nIt took me three days, but I got it.',
@@ -157,19 +161,34 @@ def recent_today(user, token, today):
         raise RuntimeError('Could not inspect recent Circus posts')
     return [row for row in rows if 'Morning coffee with Luna Grace.' not in row.get('caption', '') and dt.datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00')).astimezone(ZONE).date().isoformat() == today]
 
+def noon_window_open(now, today=None):
+    local = now.astimezone(ZONE)
+    return 12 <= local.hour < 14 and (today is None or local.date().isoformat() == today)
+
+
+def schedule_skip_reason(now, scheduled):
+    local = now.astimezone(ZONE)
+    offset = int(local.utcoffset().total_seconds() // 3600)
+    if scheduled not in SCHEDULES.get(offset, set()):
+        return 'Skipping alternate daylight-saving cron slot'
+    if not noon_window_open(local):
+        return 'Skipping outside noon publishing window'
+    return None
+
+
 def main():
     now = dt.datetime.now(ZONE)
-    # Use cron slot rather than runner start time: GitHub may delay scheduled jobs.
-    if os.getenv('GITHUB_EVENT_NAME') == 'schedule':
+    event_name = os.getenv('GITHUB_EVENT_NAME', '')
+    if event_name == 'schedule':
         event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
         scheduled = event.get('schedule', '')
-        expected = '0 17 * * *' if now.utcoffset() == dt.timedelta(hours=-5) else '0 18 * * *'
-        if scheduled != expected:
-            print('Skipping alternate daylight-saving cron slot')
+        reason = schedule_skip_reason(now, scheduled)
+        if reason:
+            print(reason)
             return
-        if now.hour < 12 or now.hour >= 14:
-            print('Skipping outside noon publishing window')
-            return
+    elif event_name not in ('workflow_dispatch', ''):
+        print('Skipping unsupported event; use an explicit manual dispatch')
+        return
     today = now.date().isoformat()
     token = os.environ['CIRCUS_IG_ACCESS_TOKEN'].strip()
     user = os.environ['CIRCUS_IG_USER_ID'].strip()
@@ -226,8 +245,19 @@ def main():
         time.sleep(3)
     else:
         raise RuntimeError('Instagram container did not become ready')
+    # Rendering, image availability and container processing can cross the cutoff.
+    if event_name == 'schedule' and not noon_window_open(dt.datetime.now(ZONE), today):
+        print('Skipping publication: noon publishing window closed during preparation')
+        return
     entry.update(state='submitting', container_id=container)
     persist(ledger, 'Circus: reserve publication ' + today)
+    if event_name == 'schedule' and not noon_window_open(dt.datetime.now(ZONE), today):
+        # No publish request was made, so this reservation is safe to release.
+        entry.update(state='prepared')
+        entry.pop('container_id', None)
+        persist(ledger, 'Circus: defer publication outside noon window ' + today)
+        print('Skipping publication: noon publishing window closed before submission')
+        return
     result = api('POST', user + '/media_publish', token, data={'creation_id': container})
     entry.update(state='published', media_id=result['id'])
     persist(ledger, 'Circus: record publication ' + today)
