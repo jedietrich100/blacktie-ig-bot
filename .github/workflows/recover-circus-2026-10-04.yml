@@ -1,0 +1,64 @@
+name: Recover Circus October 4 once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-circus-2026-10-04.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: circus-peanuts-daily
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Run approved Circus recovery for 2026-10-04' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Circus dependencies
+        run: pip install Pillow requests
+      - name: Test existing Circus safeguards
+        run: python -m unittest discover -s circus/tests -v
+      - name: Publish only the approved October 4 Circus post
+        env:
+          CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
+          CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import os
+
+          spec = importlib.util.spec_from_file_location('circus_recovery', 'circus/publish_daily.py')
+          publisher = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(publisher)
+
+          def require_approved_date():
+              today = publisher.dt.datetime.now(publisher.ZONE).date().isoformat()
+              if today != '2026-10-04':
+                  raise SystemExit('Recovery expired: only October 4, 2026 in Chicago is approved')
+
+          require_approved_date()
+          original_api = publisher.api
+
+          def date_guarded_api(method, path, token, **kwargs):
+              if method.upper() != 'GET':
+                  require_approved_date()
+              return original_api(method, path, token, **kwargs)
+
+          publisher.api = date_guarded_api
+          # The user approved one late post today. Keep the existing account,
+          # live-feed, durable-reservation and duplicate checks unchanged.
+          os.environ['GITHUB_EVENT_NAME'] = 'workflow_dispatch'
+          publisher.main()
+          PY
