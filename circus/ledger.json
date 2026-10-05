@@ -36,6 +36,7 @@
     "state": "prepared",
     "joke_index": 3,
     "caption": "My to-do list has started adding things without consulting me.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-05.jpg"
+    "image_path": "docs/circus-posts/2026-10-05.jpg",
+    "image_commit": "ebe005964b73ed607c6595ec010d45215713ab97"
   }
 }
