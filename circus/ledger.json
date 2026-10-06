@@ -47,6 +47,7 @@
     "state": "prepared",
     "joke_index": 4,
     "caption": "I put my phone somewhere safe.\nApparently, it\u2019s safe from me too.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-06.jpg"
+    "image_path": "docs/circus-posts/2026-10-06.jpg",
+    "image_commit": "ccf98dc6238ef287f6ce919a869106b4b4a673b9"
   }
 }
