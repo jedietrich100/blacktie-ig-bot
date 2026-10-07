@@ -58,6 +58,7 @@
     "state": "prepared",
     "joke_index": 5,
     "caption": "I\u2019m not running late.\nI\u2019m giving everyone time to miss me.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-07.jpg"
+    "image_path": "docs/circus-posts/2026-10-07.jpg",
+    "image_commit": "ce56359ee381614c9453cc987ea5c1053f2ad217"
   }
 }
