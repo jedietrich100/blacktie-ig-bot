@@ -1,0 +1,17 @@
+{
+  "pillar": "pets",
+  "hook": "The dog has a full-time job.",
+  "setup": "She supervises every snack, every delivery, and every trip to the bathroom.",
+  "punchline": "Her performance review is excellent. Mine says: needs more treats.",
+  "scene_prompts": [
+    "A cozy living room with a dog bed and a clipboard, warm photographic still life",
+    "A kitchen counter with a cookie jar and tiny paw-print notes",
+    "A desk with an employee-of-the-month frame containing a paw print"
+  ],
+  "caption": "Apparently, I report to the dog now. Who runs your household?",
+  "hashtags": [
+    "#CircusPeanutsDaily",
+    "#PetHumor",
+    "#EverydayHumor"
+  ]
+}

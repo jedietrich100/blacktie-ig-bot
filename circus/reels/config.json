@@ -1,0 +1,22 @@
+{
+  "account": "circuspeanutsdaily",
+  "timezone": "America/Chicago",
+  "publish_hour": 18,
+  "max_reels_per_day": 1,
+  "text_model": "gpt-4o-mini",
+  "image_model": "gpt-image-2",
+  "speech_model": "gpt-4o-mini-tts",
+  "voice": "coral",
+  "pillars": ["marriage", "aging", "technology", "travel", "pets", "errands", "everyday absurdities"],
+  "tone": "Warm, clever, playful everyday humor. Mischievous, occasionally sarcastic, never cruel or political.",
+  "tagline": "SMILE · LAUGH · REPEAT",
+  "paid_generation_enabled": false,
+  "publishing_enabled": false,
+  "max_paid_calls_per_day": 0,
+  "feeds": [
+    "https://news.google.com/rss/search?q=travel+packing+when:1d&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=pets+funny+when:1d&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=smartphone+passwords+when:1d&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=fall+coffee+when:1d&hl=en-US&gl=US&ceid=US:en"
+  ]
+}

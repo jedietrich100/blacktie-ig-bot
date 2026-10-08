@@ -1,0 +1,55 @@
+name: Circus Peanuts Evening Reel
+
+on:
+  schedule:
+    # 6 PM Chicago; the Python gate selects the correct daylight/standard slot.
+    - cron: '0,20,40 23 * * *'
+    - cron: '0,20,40 0 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  # Same account lock as existing Circus workflows; no overlap on account state.
+  group: circus-peanuts-daily
+  cancel-in-progress: false
+
+jobs:
+  reel:
+    if: github.event_name == 'workflow_dispatch' || vars.CIRCUS_REELS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install Pillow requests
+      - name: Install video renderer
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Test Circus safeguards
+        run: python -m unittest discover -s circus/tests -v
+      - name: Preview only on manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: python circus/reels/pipeline.py --preview --output preview/circus-reel
+      - name: Run scheduled Circus production
+        if: github.event_name == 'schedule'
+        env:
+          CIRCUS_OPENAI_API_KEY: ${{ secrets.CIRCUS_OPENAI_API_KEY }}
+          CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
+          CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
+        run: python circus/reels/pipeline.py
+      - name: Upload reviewable Reel and script
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: circus-reel-${{ github.run_id }}
+          path: |
+            preview/circus-reel/
+            docs/circus-reels/
+          if-no-files-found: ignore
+          retention-days: 14
