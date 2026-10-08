@@ -69,6 +69,7 @@
     "state": "prepared",
     "joke_index": 6,
     "caption": "My laundry has entered its permanent residency era.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-08.jpg"
+    "image_path": "docs/circus-posts/2026-10-08.jpg",
+    "image_commit": "c286dd48c681d27afdddb376a967241f3d1bf99a"
   }
 }
