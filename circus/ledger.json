@@ -80,6 +80,7 @@
     "state": "prepared",
     "joke_index": 7,
     "caption": "I opened the fridge for inspiration.\nThe cheese understood the assignment.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
-    "image_path": "docs/circus-posts/2026-10-10.jpg"
+    "image_path": "docs/circus-posts/2026-10-10.jpg",
+    "image_commit": "63e41a07062f1e70cbfd2c1be7de6bcd6af08c9d"
   }
 }
