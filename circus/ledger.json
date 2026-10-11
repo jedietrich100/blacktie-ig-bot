@@ -77,11 +77,12 @@
     "verified_at": "2026-10-08T12:30:52.789558-05:00"
   },
   "2026-10-10": {
-    "state": "submitting",
+    "state": "published",
     "joke_index": 7,
     "caption": "I opened the fridge for inspiration.\nThe cheese understood the assignment.\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus",
     "image_path": "docs/circus-posts/2026-10-10.jpg",
     "image_commit": "63e41a07062f1e70cbfd2c1be7de6bcd6af08c9d",
-    "container_id": "18144491860524928"
+    "container_id": "18144491860524928",
+    "media_id": "18108509141353955"
   }
 }
