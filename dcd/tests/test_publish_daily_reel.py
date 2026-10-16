@@ -26,8 +26,9 @@ class WindowTests(unittest.TestCase):
         for date in ("2026-10-04", "2026-12-04"):
             for time, expected in (("17:29:59", False), ("17:30:00", True),
                                    ("17:40:00", True), ("17:50:00", True),
-                                   ("17:59:59", True), ("18:00:00", False),
-                                   ("21:56:00", False), ("22:00:00", False)):
+                                   ("17:59:59", True), ("18:00:00", True),
+                                   ("20:42:00", True), ("21:56:00", True), ("23:59:59", True),
+                                   ("00:00:00", False)):
                 with self.subTest(date=date, time=time):
                     self.assertEqual(reel.publication_allowed("schedule", local(date + "T" + time), date), expected)
 
@@ -45,6 +46,19 @@ class WindowTests(unittest.TestCase):
     def test_unsupported_events_cannot_publish(self):
         for event in ("", "push", "pull_request", "workflow_run"):
             self.assertFalse(reel.publication_allowed(event, local("2026-10-04T17:40:00"), "2026-10-04"))
+
+    def test_workflow_gate_cli_reports_skip_without_publishing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "output"
+            summary = Path(folder) / "summary"
+            env = dict(os.environ, GITHUB_EVENT_NAME="pull_request",
+                       GITHUB_OUTPUT=str(output), GITHUB_STEP_SUMMARY=str(summary))
+            result = subprocess.run([sys.executable, str(Path(reel.__file__)), "--check-schedule"],
+                                    env=env, text=True, capture_output=True, check=True)
+            self.assertIn("run=false\n", output.read_text())
+            self.assertIn("publishing_result=skipped\n", output.read_text())
+            self.assertIn("**skipped**", summary.read_text())
+            self.assertIn("::warning", result.stdout)
 
 
 class MainTests(unittest.TestCase):
@@ -93,6 +107,47 @@ class MainTests(unittest.TestCase):
     def run_main(self):
         with contextlib.redirect_stdout(io.StringIO()):
             reel.main()
+
+    def test_delayed_run_and_backup_submit_exactly_once(self):
+        self.clock = local("2026-10-04T20:42:00")
+        self.run_main()
+        self.clock = local("2026-10-04T23:50:00")
+        self.run_main()
+        reel.publish_reel.assert_called_once()
+        summary = (self.root / "summary").read_text()
+        self.assertIn("**accepted**", summary)
+        self.assertIn("**already_submitted**", summary)
+
+    def test_preparation_crossing_old_cutoff_still_submits(self):
+        self.clock = local("2026-10-04T17:59:59")
+        def finish_late(*args):
+            self.clock = local("2026-10-04T18:00:01")
+        reel.verify_video.side_effect = finish_late
+        self.run_main()
+        reel.publish_reel.assert_called_once()
+        self.assertEqual(self.ledger[self.today]["state"], "submitted")
+
+    def test_missing_media_is_explicit_skip_not_acceptance(self):
+        (self.root / "docs/dcd-reels/2026-10-04.txt").unlink()
+        output = self.root / "output"
+        with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}):
+            self.run_main()
+        self.assertEqual(output.read_text(), "publishing_result=skipped\n")
+        self.assertIn("**skipped**", (self.root / "summary").read_text())
+        reel.publish_reel.assert_not_called()
+
+    def test_schedule_gate_matches_publisher_without_side_effects(self):
+        output = self.root / "output"
+        for time, expected in (("17:29:59", "false"), ("17:30:00", "true"),
+                               ("20:42:00", "true"), ("23:59:59", "true")):
+            self.clock = local("2026-10-04T" + time)
+            output.write_text("")
+            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    reel.check_schedule()
+            self.assertIn("run=" + expected + "\n", output.read_text())
+        reel.refresh_main.assert_not_called()
+        reel.publish_reel.assert_not_called()
 
     def test_reservation_is_persisted_before_exactly_one_mutation(self):
         def inspect(*args):
@@ -254,7 +309,7 @@ class MainTests(unittest.TestCase):
         reel.publish_reel.assert_not_called()
 
     def test_outside_window_does_no_git_or_network_work(self):
-        self.clock = local("2026-10-04T21:56:00")
+        self.clock = local("2026-10-04T17:29:59")
         self.run_main()
         reel.refresh_main.assert_not_called()
         reel.discover_channel.assert_not_called()
@@ -262,7 +317,7 @@ class MainTests(unittest.TestCase):
 
     def test_cutoff_during_preparation_prevents_reservation(self):
         def close_window(*args):
-            self.clock = local("2026-10-04T18:00:00")
+            self.clock = local("2026-10-05T00:00:00")
         reel.verify_video.side_effect = close_window
         self.run_main()
         reel.persist.assert_not_called()
@@ -271,7 +326,7 @@ class MainTests(unittest.TestCase):
     def test_cutoff_during_persist_releases_only_unsent_reservation(self):
         def persist_and_close(history, ledger, message):
             self.save_state(history, ledger, message)
-            self.clock = local("2026-10-04T18:00:00")
+            self.clock = local("2026-10-05T00:00:00")
         reel.persist.side_effect = persist_and_close
         self.run_main()
         self.assertEqual(self.ledger[self.today]["state"], "deferred")
