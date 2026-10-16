@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 from zoneinfo import ZoneInfo
 
@@ -32,7 +33,28 @@ def publication_allowed(event: str, current: dt.datetime, today: str) -> bool:
         return False
     if event == "workflow_dispatch":
         return True  # Preserve the existing explicitly requested manual path.
-    return event == "schedule" and local.hour == 17 and local.minute >= 30
+    return event == "schedule" and (local.hour, local.minute) >= (17, 30)
+
+
+def report_result(status: str, reason: str) -> None:
+    """Expose a submission result separately from the Actions job conclusion."""
+    print(f"Reel result: {status}: {reason}")
+    if status == "skipped":
+        print(f"::warning title=Reel not submitted::{reason}")
+    with open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a", encoding="utf-8") as output:
+        output.write(f"publishing_result={status}\n")
+    with open(os.environ.get("GITHUB_STEP_SUMMARY", os.devnull), "a", encoding="utf-8") as summary:
+        summary.write(f"Digital Calm Daily Reel — **{status}**: {reason}\n")
+
+
+def check_schedule() -> None:
+    current = now()
+    allowed = publication_allowed(os.environ.get("GITHUB_EVENT_NAME", ""), current,
+                                  current.date().isoformat())
+    with open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a", encoding="utf-8") as output:
+        output.write(f"run={str(allowed).lower()}\n")
+    if not allowed:
+        report_result("skipped", "Outside the same-day Central publishing window (17:30–23:59) or unsupported event")
 
 
 def git(*args: str) -> str:
@@ -96,7 +118,7 @@ def main() -> None:
     event = os.environ.get("GITHUB_EVENT_NAME", "")
     today = now().date().isoformat()
     if not publication_allowed(event, now(), today):
-        print("Skipping outside today's Reel publishing window")
+        report_result("skipped", "Outside today's Central publishing window (17:30–23:59) or unsupported event")
         return
     api_key = os.environ.get("DCD_BUFFER_API_KEY", "").strip()
     if not api_key:
@@ -107,14 +129,14 @@ def main() -> None:
     refresh_main()
     history, ledger = read_state()
     if today in history:
-        print("Today's Reel was already submitted; skipping")
+        report_result("already_submitted", "Today's Reel was already submitted; no new submission")
         return
     entry = ledger.get(today)
     if entry is not None:
         if entry.get("state") == "submitted" and entry.get("buffer_post_id"):
             history.append(today)
             persist(history, ledger, "DCD Reel: reconcile accepted submission " + today)
-            print("Today's Reel has a Buffer receipt; history reconciled")
+            report_result("already_submitted", "Existing Buffer receipt reconciled; no new submission")
             return
         if entry.get("state") != "deferred":
             raise RuntimeError("Prior Reel submission needs reconciliation; refusing a blind duplicate retry")
@@ -122,7 +144,7 @@ def main() -> None:
     video_path = ROOT / "docs" / "dcd-reels" / (today + ".mp4")
     caption_path = video_path.with_suffix(".txt")
     if not video_path.is_file() or not caption_path.is_file():
-        print("Today's message did not call for a quick how-to Reel")
+        report_result("skipped", "Today's Reel video or caption is missing; no submission")
         return
     caption = caption_path.read_text(encoding="utf-8")
     if not caption.strip():
@@ -133,7 +155,7 @@ def main() -> None:
     verify_video(video_url)
     channel_id = discover_channel(api_key)
     if not publication_allowed(event, now(), today):
-        print("Skipping publication: Reel window closed during preparation")
+        report_result("skipped", "Central calendar day changed during preparation; no submission")
         return
 
     # A durable reservation MUST reach origin before Buffer can receive a POST.
@@ -153,7 +175,7 @@ def main() -> None:
         # No Buffer mutation happened, so this reservation is safe to release.
         entry["state"] = "deferred"
         persist(history, ledger, "DCD Reel: defer outside publishing window " + today)
-        print("Skipping publication: Reel window closed before submission")
+        report_result("skipped", "Central calendar day changed before submission; reservation deferred")
         return
 
     try:
@@ -165,11 +187,14 @@ def main() -> None:
     entry.update(state="submitted", buffer_post_id=post_id, accepted_at=now().isoformat())
     history.append(today)
     persist(history, ledger, "DCD Reel: record accepted submission " + today)
-    print("Buffer accepted today's Reel:", post_id)
-    # Acceptance is not a claim that Instagram has finished publishing it.
-    with open(os.environ.get("GITHUB_STEP_SUMMARY", os.devnull), "a", encoding="utf-8") as summary:
-        summary.write("Digital Calm Daily Reel accepted by Buffer. Post ID: " + post_id + "\n")
+    # Buffer acceptance does not confirm completed Instagram publication.
+    report_result("accepted", "Buffer accepted today's Reel. Post ID: " + post_id)
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--check-schedule"]:
+        check_schedule()
+    elif sys.argv[1:]:
+        raise SystemExit("Usage: publish_daily_reel.py [--check-schedule]")
+    else:
+        main()

@@ -3,7 +3,8 @@ name: Digital Calm Daily Quick How-To Reel
 on:
   schedule:
     # 5:30 PM Chicago, with 5:40 and 5:50 backups across daylight/standard time.
-    # The wall-clock gate below retains the 17:30-17:59 local window.
+    # Delayed runs may submit until Central midnight; the shared Python gate
+    # prevents early posting. The ledger makes backup attempts idempotent.
     - cron: "30,40,50 22 * * *"
     - cron: "30,40,50 23 * * *"
   workflow_dispatch: {}
@@ -20,53 +21,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check schedule and required connection
-        id: gate
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
-        run: |
-          set -euo pipefail
-          LOCAL_HOUR=$(TZ=America/Chicago date +%H)
-          LOCAL_MINUTE=$(TZ=America/Chicago date +%M)
-          echo "Central time: ${LOCAL_HOUR}:${LOCAL_MINUTE}"
-
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            TIME_OK=true
-          elif [ "$EVENT_NAME" = "schedule" ] && [ "$LOCAL_HOUR" = "17" ] && [ "$LOCAL_MINUTE" -ge 30 ]; then
-            TIME_OK=true
-          else
-            TIME_OK=false
-          fi
-
-          if [ "$TIME_OK" = true ] && [ -n "$DCD_BUFFER_API_KEY" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout latest main
-        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
       - name: Set up Python
-        if: steps.gate.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install publishing dependency
-        if: steps.gate.outputs.run == 'true'
         run: pip install requests
+
+      - name: Check schedule using publisher's timing policy
+        id: gate
+        run: python3 dcd/publish_daily_reel.py --check-schedule
 
       - name: Test Reel schedule and duplicate safeguards
         if: steps.gate.outputs.run == 'true'
         run: python3 -m unittest discover -s dcd/tests -v
 
-      - name: Publish today's Reel with durable duplicate protection
+      - name: Submit today's Reel with durable duplicate protection
+        id: publish
         if: steps.gate.outputs.run == 'true'
         env:
           DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
