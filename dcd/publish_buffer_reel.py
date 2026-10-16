@@ -6,7 +6,7 @@ import json
 import os
 import sys
 
-from publish_buffer import discover_channel, gql
+from publish_buffer import discover_channel, gql, require_accepted_post
 
 
 def publish_reel(api_key: str, channel_id: str, video_url: str, caption: str) -> str:
@@ -37,8 +37,9 @@ mutation CreatePost {{
     post = payload.get("post")
     if not post or not post.get("id"):
         raise RuntimeError(f"Unexpected Buffer response: {result}")
+    post_id = require_accepted_post(post)
     print(json.dumps(post, indent=2))
-    return str(post["id"])
+    return post_id
 
 
 def main() -> None:
@@ -50,7 +51,7 @@ def main() -> None:
     channel_id = discover_channel(api_key)
     caption = open(sys.argv[2], encoding="utf-8").read()
     post_id = publish_reel(api_key, channel_id, sys.argv[1], caption)
-    print(f"Published Buffer Reel: {post_id}")
+    print(f"Buffer accepted Reel: {post_id} (Instagram publication not yet verified)")
 
 
 if __name__ == "__main__":
