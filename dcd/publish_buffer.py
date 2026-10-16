@@ -82,6 +82,19 @@ def discover_channel(api_key: str) -> str:
     )
 
 
+def require_accepted_post(post: dict) -> str:
+    """A receipt with an error status is a failed publication, not success."""
+    if not post or not post.get("id"):
+        raise RuntimeError("Buffer returned no post receipt")
+    post_id = str(post["id"])
+    if str(post.get("status", "")).lower() in {"error", "failed"}:
+        raise RuntimeError(
+            f"Buffer post {post_id} has status {post['status']}; publication failed. "
+            "Inspect the channel connection and this existing post in Buffer before retrying."
+        )
+    return post_id
+
+
 def publish(api_key: str, channel_id: str, image_url: str, caption: str) -> str:
     text = json.dumps(caption)
     channel = json.dumps(channel_id)
@@ -112,8 +125,9 @@ mutation CreatePost {{
     post = payload.get("post")
     if not post or not post.get("id"):
         raise RuntimeError(f"Unexpected Buffer response: {result}")
+    post_id = require_accepted_post(post)
     print(json.dumps(post, indent=2))
-    return str(post["id"])
+    return post_id
 
 
 def main() -> None:
@@ -128,7 +142,7 @@ def main() -> None:
     caption = open(sys.argv[2], encoding="utf-8").read()
     channel_id = discover_channel(api_key)
     post_id = publish(api_key, channel_id, image_url, caption)
-    print(f"Published Buffer post: {post_id}")
+    print(f"Buffer accepted post: {post_id} (Instagram publication not yet verified)")
 
 
 if __name__ == "__main__":
