@@ -6,9 +6,11 @@
     "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/59c6ae61964109837559182cd8a64916ece89a8b/docs/posts/2026-10-18.jpg",
     "last_error": "9007/2207027",
     "media_id": "18098518019645880",
+    "permalink": "https://www.instagram.com/p/DepFTFiFYUx/",
     "publish_attempt": 2,
+    "published_at": "2026-10-18T17:43:12+0000",
     "source_run": "https://github.com/jedietrich100/blacktie-ig-bot/actions/runs/39143866170/job/117723621498",
-    "status": "published_unverified",
-    "updated_at": "2026-10-18T17:43:15.218769+00:00"
+    "status": "published",
+    "updated_at": "2026-10-18T17:43:16.790628+00:00"
   }
 }
