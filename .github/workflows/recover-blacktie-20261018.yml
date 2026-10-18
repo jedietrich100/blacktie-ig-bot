@@ -1,0 +1,34 @@
+name: Recover Black Tie October 18
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-blacktie-20261018.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blacktie-daily-instagram-post
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Load current main after acquiring publication lock
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test duplicate and readiness safety
+        run: python3 -m unittest discover -s scripts/tests -v
+      - name: Reconcile original container and recover the preserved post
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python3 scripts/recover_blacktie_oct18.py

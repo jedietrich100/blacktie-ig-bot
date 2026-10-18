@@ -68,32 +68,38 @@ def build_caption(quote, theme):
     )
 
 
+def save_today_outputs(relative_image_path, caption):
+    with open(os.path.join(HERE, "_today_caption.txt"), "w", encoding="utf-8") as f:
+        f.write(caption)
+    with open(os.path.join(HERE, "_today_image_path.txt"), "w", encoding="utf-8") as f:
+        f.write(relative_image_path)
+
+
 def main():
+    today_str = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+    relative_image_path = f"docs/posts/{today_str}.jpg"
+    absolute_image_path = os.path.join(HERE, "..", relative_image_path)
+    caption_path = os.path.join(HERE, "..", f"docs/posts/{today_str}.caption.txt")
+    image_exists, caption_exists = os.path.exists(absolute_image_path), os.path.exists(caption_path)
+    if image_exists or caption_exists:
+        if not (image_exists and caption_exists):
+            raise RuntimeError("Existing daily assets are incomplete; refusing to regenerate them")
+        with open(caption_path, encoding="utf-8") as f:
+            caption = f.read()
+        if not caption.strip() or os.path.getsize(absolute_image_path) == 0:
+            raise RuntimeError("Existing daily assets are invalid; refusing to regenerate them")
+        save_today_outputs(relative_image_path, caption)
+        print(f"Reusing immutable daily image and caption: {today_str}")
+        return
+
     quote_json = run([sys.executable, os.path.join(HERE, "generate_quote.py")])
     data = json.loads(quote_json)
     quote, theme = data["quote"], data["theme"]
-
-    today_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    relative_image_path = f"docs/posts/{today_str}.jpg"
-    absolute_image_path = os.path.join(HERE, "..", relative_image_path)
-
-    run(
-        [
-            sys.executable,
-            os.path.join(HERE, "render_post.py"),
-            quote,
-            theme,
-            absolute_image_path,
-        ]
-    )
-
+    run([sys.executable, os.path.join(HERE, "render_post.py"), quote, theme, absolute_image_path])
     caption = build_caption(quote, theme)
-
-    with open(os.path.join(HERE, "_today_caption.txt"), "w") as f:
+    with open(caption_path, "w", encoding="utf-8") as f:
         f.write(caption)
-    with open(os.path.join(HERE, "_today_image_path.txt"), "w") as f:
-        f.write(relative_image_path)
-
+    save_today_outputs(relative_image_path, caption)
     print(f"Day: {data['day']}")
     print(f"Theme: {theme}")
     print(f"Quote: {quote}")
