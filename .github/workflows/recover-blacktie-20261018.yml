@@ -2,9 +2,6 @@ name: Recover Black Tie October 18
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: [main]
-    paths: [.github/workflows/recover-blacktie-20261018.yml]
 
 permissions:
   contents: write
