@@ -12,5 +12,12 @@
     "source_run": "https://github.com/jedietrich100/blacktie-ig-bot/actions/runs/39143866170/job/117723621498",
     "status": "published",
     "updated_at": "2026-10-18T17:43:16.790628+00:00"
+  },
+  "2026-10-19": {
+    "account_id": "17841434445662205",
+    "caption_sha256": "59bf97fbbe5355085fa38878b7d0abd0cfc7adf8b22cea8389673803e08df709",
+    "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/001c37730cab1b6a40271fb8b49fc1d9e07074d9/docs/posts/2026-10-19.jpg",
+    "status": "prepared",
+    "updated_at": "2026-10-19T18:52:15.728036+00:00"
   }
 }
