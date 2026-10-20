@@ -1,4 +1,4 @@
-"""Circus-only daily Reel factory. Paid calls and publishing default to OFF."""
+"""Circus-only daily Reels. Curated rotation publishes; paid AI stays disabled."""
 from __future__ import annotations
 
 import argparse

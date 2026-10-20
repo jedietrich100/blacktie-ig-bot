@@ -57,12 +57,12 @@ jobs:
           CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
         run: python circus/reels/pipeline.py
       - name: Upload reviewable Reel and script
-        if: always()
+        # Production assets are already committed; avoid repeatedly uploading
+        # the entire growing media history on every backup attempt.
+        if: always() && github.event_name != 'schedule'
         uses: actions/upload-artifact@v4
         with:
           name: circus-reel-${{ github.run_id }}
-          path: |
-            preview/circus-reel/
-            docs/circus-reels/
+          path: preview/circus-reel/
           if-no-files-found: ignore
           retention-days: 14
