@@ -69,7 +69,7 @@ Editorial rules:
 - For Apple/iPhone guidance, avoid version-specific menu paths unless the step is
   very stable; prefer tips that remain useful even if wording changes slightly.
 - Do not repeat or lightly paraphrase a recent topic.
-- Keep the account faceless.
+- Keep the account faceless.\n- Open with one recognizable everyday frustration and deliver one concrete fix.\n- The headline should name the benefit, not a vague slogan.\n- For a visual how-to, show the useful result before the steps; avoid long introductions.\n- Make each post understandable without sound.\n- Use real actions, not invented app screenshots or fake demonstrations.\n- Give followers a repeatable reason to return: one small practical win.
 
 Graphic rules:
 - Headline: 3-6 words, maximum 42 characters.
