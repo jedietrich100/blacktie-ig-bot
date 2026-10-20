@@ -34,18 +34,105 @@ class ReelsTests(unittest.TestCase):
             p.validate_script(self.script, self.config, self.state)
 
     def test_reserve_exhaustion_never_repeats(self):
-        self.state["jobs"] = {str(i): {"evergreen_index": i} for i in range(7)}
+        bank = json.loads((p.HERE / "evergreen.json").read_text())
+        self.state["jobs"] = {str(i): {"evergreen_index": i} for i in range(len(bank))}
         with self.assertRaisesRegex(RuntimeError, "exhausted"):
             p.choose_evergreen(self.state)
 
     def test_dst_dates_and_delayed_runs(self):
-        for day, cron in [("2026-10-31", "0,20,40 23 * * *"), ("2026-11-01", "0,20,40 0 * * *"),
-                          ("2026-03-07", "0,20,40 0 * * *"), ("2026-03-08", "0,20,40 23 * * *")]:
+        for day in ("2026-10-31", "2026-11-01", "2026-03-07", "2026-03-08"):
+            cron = p.EVENING_CRON
             now = dt.datetime.fromisoformat(day + "T18:20:00").replace(tzinfo=p.ZONE)
             self.assertTrue(p.schedule_allowed(now, day, cron))
-            self.assertFalse(p.schedule_allowed(now.replace(hour=19), day, cron))
+            self.assertTrue(p.schedule_allowed(now.replace(hour=19), day, cron))
+            self.assertTrue(p.schedule_allowed(now.replace(hour=23, minute=59), day, cron))
+            self.assertFalse(p.schedule_allowed(now.replace(hour=17, minute=59), day, cron))
+            self.assertFalse(p.schedule_allowed(now.replace(hour=0), day, cron))
             self.assertFalse(p.schedule_allowed(now, "2020-01-01", cron))
             self.assertFalse(p.schedule_allowed(now, day, "unknown"))
+
+    def test_cron_covers_all_evening_slots_across_dst(self):
+        for day in ("2026-03-07", "2026-03-08", "2026-10-31", "2026-11-01"):
+            accepted = []
+            start = dt.datetime.fromisoformat(day + "T00:00:00+00:00")
+            for offset in range(48 * 3):
+                now = start + dt.timedelta(minutes=offset * 20)
+                if now.hour in (23, 0, 1, 2, 3, 4, 5) and p.schedule_allowed(now, day, p.EVENING_CRON):
+                    accepted.append(now.astimezone(p.ZONE))
+            self.assertEqual([(x.hour, x.minute) for x in accepted],
+                             [(h, m) for h in range(18, 24) for m in (0, 20, 40)])
+
+    def test_rotation_preserves_history_and_never_reuses_uncertain_jobs(self):
+        self.config["evergreen_repeat_after_days"] = 90
+        bank = json.loads((p.HERE / "evergreen.json").read_text())
+        self.state["jobs"] = {
+            (dt.date(2026, 1, 1) + dt.timedelta(days=i)).isoformat(): {
+                "state": "published", "evergreen_index": i, "script": script,
+                "script_hash": p.digest(" ".join(script[k] for k in ("hook", "setup", "punchline")))
+            } for i, script in enumerate(bank)}
+        before = copy.deepcopy(self.state)
+        day = (dt.date(2026, 1, 1) + dt.timedelta(days=len(bank))).isoformat()
+        index, script = p.choose_evergreen(self.state, self.config, day)
+        self.assertEqual(index, 0)
+        p.validate_script(script, self.config, p.evergreen_history(self.state, self.config, day))
+        self.assertEqual(self.state, before)
+        self.state["jobs"]["2026-01-01"]["state"] = "submitting"
+        self.assertNotEqual(p.choose_evergreen(self.state, self.config, day)[0], 0)
+        with self.assertRaisesRegex(RuntimeError, "Duplicate"):
+            p.validate_script(script, self.config, p.evergreen_history(self.state, self.config, day))
+
+    def test_bank_supports_continuous_daily_rotation_and_scene_durations(self):
+        bank = json.loads((p.HERE / "evergreen.json").read_text())
+        self.assertGreater(len(bank), self.config["evergreen_repeat_after_days"])
+        for script in bank:
+            for key in ("hook", "setup", "punchline"):
+                self.assertLessEqual(max(3, len(script[key].split()) / 2.6), 13)
+        seen = {}
+        for n in range(400):
+            day = (dt.date(2026, 1, 1) + dt.timedelta(days=n)).isoformat()
+            index, script = p.choose_evergreen(self.state, self.config, day)
+            if index in seen:
+                self.assertGreaterEqual(n - seen[index], 90)
+            fingerprint = p.validate_script(script, self.config, p.evergreen_history(self.state, self.config, day))
+            self.state["jobs"][day] = {"state": "published", "evergreen_index": index,
+                                       "script": script, "script_hash": fingerprint}
+            seen[index] = n
+
+    def test_enabled_workflow_keeps_paid_key_absent_and_manual_dispatch_preview_only(self):
+        workflow = (ROOT / ".github/workflows/circus-peanuts-reel.yml").read_text()
+        self.assertIn(p.EVENING_CRON, workflow)
+        self.assertNotIn("vars.CIRCUS_REELS_ENABLED", workflow)
+        self.assertNotIn("CIRCUS_OPENAI_API_KEY:", workflow)
+        self.assertFalse(self.config["paid_generation_enabled"])
+        self.assertEqual(self.config["max_paid_calls_per_day"], 0)
+        self.assertTrue(self.config["publishing_enabled"])
+        self.assertIn("if: github.event_name == 'schedule'", workflow)
+        self.assertIn("if: github.event_name != 'schedule'", workflow)
+
+    def test_free_scheduled_run_skips_rss_paid_calls_and_second_publication(self):
+        class Evening(dt.datetime):
+            @classmethod
+            def now(cls, zone=None):
+                return cls(2026, 10, 20, 19, 10, tzinfo=p.ZONE)
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / "event.json"
+            event.write_text(json.dumps({"schedule": p.EVENING_CRON}))
+            def submitted(config, state, day, folder, allowed):
+                self.assertTrue(allowed())
+                state["jobs"][day]["state"] = "published"
+            with patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule", "GITHUB_EVENT_PATH": str(event)}), \
+                 patch.object(p, "ROOT", Path(tmp)), patch.object(p, "load_state", return_value=self.state), \
+                 patch.object(p.dt, "datetime", Evening), patch.object(p, "git", return_value="abc"), \
+                 patch.object(p, "persist"), patch.object(p, "render"), patch.object(p, "check_account"), \
+                 patch.object(p, "collect_metrics"), patch.object(p, "collect_topics") as feeds, \
+                 patch.object(p, "paid_post") as paid, patch.object(p, "generate_assets") as assets, \
+                 patch.object(p, "publish", side_effect=submitted) as publish:
+                p.run()
+                p.run()
+                publish.assert_called_once()
+                feeds.assert_not_called()
+                paid.assert_not_called()
+                assets.assert_not_called()
 
     def test_paid_calls_off_never_contact_provider(self):
         with patch.object(p.requests, "post") as post:
@@ -139,6 +226,7 @@ class ReelsTests(unittest.TestCase):
         self.assertEqual(calls.count(("POST", "123/media_publish")), 1)
 
     def test_disabled_publication_makes_no_requests(self):
+        self.config["publishing_enabled"] = False
         with patch.object(p, "instagram") as api:
             p.publish(self.config, self.state, "2026-10-08", ROOT, lambda: True)
             api.assert_not_called()

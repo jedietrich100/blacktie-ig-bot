@@ -11,7 +11,8 @@
   "tone": "Warm, clever, playful everyday humor. Mischievous, occasionally sarcastic, never cruel or political.",
   "tagline": "SMILE · LAUGH · REPEAT",
   "paid_generation_enabled": false,
-  "publishing_enabled": false,
+  "publishing_enabled": true,
+  "evergreen_repeat_after_days": 90,
   "max_paid_calls_per_day": 0,
   "feeds": [
     "https://news.google.com/rss/search?q=travel+packing+when:1d&hl=en-US&gl=US&ceid=US:en",

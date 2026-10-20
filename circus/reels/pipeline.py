@@ -26,6 +26,7 @@ ZONE = ZoneInfo("America/Chicago")
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BASE = "https://graph.instagram.com/v26.0"
 W, H = 1080, 1920
+EVENING_CRON = "0,20,40 23,0-5 * * *"
 
 
 def load_config():
@@ -73,9 +74,8 @@ def digest(text):
 
 def schedule_allowed(current, day, scheduled):
     local = current.astimezone(ZONE)
-    offset = int(local.utcoffset().total_seconds() // 3600)
-    active = "0,20,40 23 * * *" if offset == -5 else "0,20,40 0 * * *"
-    return local.date().isoformat() == day and local.hour == 18 and scheduled == active
+    return (local.date().isoformat() == day and 18 <= local.hour < 24
+            and scheduled == EVENING_CRON)
 
 
 def fresh_feed_items(xml, current):
@@ -185,12 +185,33 @@ def validate_script(script, config, state):
     return fingerprint
 
 
-def choose_evergreen(state):
+def evergreen_history(state, config, day):
+    """Keep every uncertain job; only completed, old evergreen jobs may rotate."""
+    cooldown = config.get("evergreen_repeat_after_days")
+    if not isinstance(cooldown, int) or cooldown < 90:
+        return state
+    recent = {}
+    for date, job in state["jobs"].items():
+        try:
+            age = (dt.date.fromisoformat(day) - dt.date.fromisoformat(date)).days
+        except ValueError:
+            age = 0
+        if (age < cooldown or job.get("state") != "published"
+                or job.get("evergreen_index") is None):
+            recent[date] = job
+    return {**state, "jobs": recent}
+
+
+def choose_evergreen(state, config=None, day=None):
     bank = json.loads((HERE / "evergreen.json").read_text())
-    used = {job.get("evergreen_index") for job in state["jobs"].values()}
-    for index, script in enumerate(bank):
+    history = evergreen_history(state, config or {}, day) if day else state
+    used = {job.get("evergreen_index") for job in history["jobs"].values()}
+    last_used = {index: max((date for date, job in state["jobs"].items()
+                            if job.get("evergreen_index") == index), default="")
+                 for index in range(len(bank))}
+    for index in sorted(range(len(bank)), key=lambda i: (last_used[i], i)):
         if index not in used:
-            return index, script
+            return index, bank[index]
     raise RuntimeError("Evergreen reserve exhausted; add fresh scripts rather than repeat")
 
 
@@ -304,7 +325,7 @@ def render(script, folder, preview=False):
         if duration > 13:
             raise RuntimeError("Narration scene exceeds short-form timing limit")
         segment = folder / f"segment-{index}.mp4"
-        command = ["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", str(frame)]
+        command = ["ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-loop", "1", "-i", str(frame)]
         command += ["-i", str(audio)] if audio.exists() else ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
         command += ["-vf", "scale=1100:1956,crop=1080:1920:x='10+8*sin(t)':y='18+12*sin(t/2)',fps=30,format=yuv420p",
                     "-af", "apad", "-t", str(duration), "-c:v", "libx264", "-preset", "fast", "-crf", "24",
@@ -314,7 +335,7 @@ def render(script, folder, preview=False):
     manifest = folder / "concat.txt"
     manifest.write_text("".join("file '" + p.name + "'\n" for p in segments))
     output = folder / "reel.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(manifest),
+    subprocess.run(["ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(manifest),
                     "-c", "copy", "-movflags", "+faststart", str(output)], check=True)
     make_frame(script["hook"], folder / "cover.jpg", folder / "background-0.png", "FORMAT PREVIEW" if preview else "")
     info = media_info(output)
@@ -333,6 +354,18 @@ def instagram(method, path, token, **kwargs):
     if not response.ok:
         raise RuntimeError(f"Instagram request failed: HTTP {response.status_code}")
     return response.json()
+
+
+def check_account(config):
+    token = os.getenv("CIRCUS_IG_ACCESS_TOKEN", "").strip()
+    user = os.getenv("CIRCUS_IG_USER_ID", "").strip()
+    if not token or not user.isdigit():
+        raise RuntimeError("Circus-specific Instagram credentials missing")
+    account = instagram("GET", "me", token, params={"fields": "user_id,username,id"})
+    if account.get("username") != config["account"] or str(account.get("user_id") or account.get("id")) != user:
+        raise RuntimeError("Wrong Instagram account; blocked")
+    print("PASS: verified @" + config["account"])
+    return token, user
 
 
 def reconcile(rows, marker):
@@ -383,14 +416,9 @@ def publish(config, state, day, folder, allowed):
         print("Publishing is OFF; finished Reel retained for review")
         return
     if not allowed():
-        print("Outside today's 6 PM Central window; skipping")
+        print("Outside today's evening Central window; skipping")
         return
-    token, user = os.getenv("CIRCUS_IG_ACCESS_TOKEN", "").strip(), os.getenv("CIRCUS_IG_USER_ID", "").strip()
-    if not token or not user.isdigit():
-        raise RuntimeError("Circus-specific Instagram credentials missing")
-    account = instagram("GET", "me", token, params={"fields": "user_id,username,id"})
-    if account.get("username") != config["account"] or str(account.get("user_id") or account.get("id")) != user:
-        raise RuntimeError("Wrong Instagram account; blocked")
+    token, user = check_account(config)
     entry = state["jobs"][day]
     if entry.get("state") == "published":
         print("Already published:", entry.get("permalink", entry.get("media_id")))
@@ -454,9 +482,9 @@ def run(preview=False, output=None):
     current = dt.datetime.now(ZONE)
     day = current.date().isoformat()
     if preview:
-        _, script = choose_evergreen(state)
+        _, script = choose_evergreen(state, config, day)
         folder = Path(output or ROOT / "preview/circus-reel")
-        validate_script(script, config, state)
+        validate_script(script, config, evergreen_history(state, config, day))
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "script.json").write_text(json.dumps(script, indent=2) + "\n")
         (folder / "caption.txt").write_text(script["caption"] + "\n\n" + " ".join(script["hashtags"]) + "\n")
@@ -465,10 +493,18 @@ def run(preview=False, output=None):
     event = os.getenv("GITHUB_EVENT_NAME", "")
     scheduled = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text()).get("schedule", "") if event == "schedule" else ""
     allowed = lambda: schedule_allowed(dt.datetime.now(ZONE), day, scheduled)
-    if event != "schedule" or not allowed():
-        raise RuntimeError("Live pipeline runs only during scheduled 6 PM window; manual dispatch is preview-only")
+    if event != "schedule":
+        raise RuntimeError("Live pipeline requires schedule; manual dispatch is preview-only")
+    if not allowed():
+        print("Outside the evening window; no account or state changes")
+        return
     git("pull", "--ff-only", "origin", "main")
     state = load_state()
+    if state["jobs"].get(day, {}).get("state") == "published":
+        print("Already published today's Reel; no repeat")
+        return
+    if config["publishing_enabled"]:
+        check_account(config)  # Fail before reserving content if credentials are invalid.
     # Metrics collection is optional and never substitutes missing values with zero.
     try:
         collect_metrics(state, current)
@@ -478,7 +514,7 @@ def run(preview=False, output=None):
     entry = state["jobs"].get(day)
     if not entry:
         folder.mkdir(parents=True, exist_ok=True)
-        topics = collect_topics(config, state, current)
+        topics = collect_topics(config, state, current) if config["paid_generation_enabled"] else []
         entry = {"state": "generating", "started_at": current.isoformat(), "marker": "Circus reel · " + day}
         state["jobs"][day] = entry
         persist(state, "Circus Reel: reserve generation " + day)
@@ -489,10 +525,10 @@ def run(preview=False, output=None):
         if paid:
             script = generate_script(config, state, day, topics)
         else:
-            index, script = choose_evergreen(state)
+            index, script = choose_evergreen(state, config, day)
             entry["evergreen_index"] = index
         # Exclude this job's empty reservation from duplicate checks.
-        fingerprint = validate_script(script, config, state)
+        fingerprint = validate_script(script, config, state if paid else evergreen_history(state, config, day))
         entry.update(script=script, script_hash=fingerprint, topic_url=script.get("topic_url", ""))
         persist(state, "Circus Reel: record script " + day)
         if paid:
@@ -519,5 +555,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--output")
+    parser.add_argument("--check-account", action="store_true")
     args = parser.parse_args()
-    run(args.preview, args.output)
+    if args.check_account:
+        check_account(load_config())
+    else:
+        run(args.preview, args.output)
