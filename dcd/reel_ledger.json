@@ -62,5 +62,13 @@
     "caption_sha256": "7689147e8b90862936e9cd7f21ea025e2980129222a26e44da284b06cdb4e323",
     "reserved_at": "2026-10-18T19:19:04.745812-05:00",
     "run_id": "39180220260"
+  },
+  "2026-10-19": {
+    "state": "submitting",
+    "channel_id": "6a95de1e065799be46610ae6",
+    "video_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/12370bd2dace69e37feae1af08d4bb594be191ab/docs/dcd-reels/2026-10-19.mp4",
+    "caption_sha256": "9550cebe11e2d0f7ce69608cb10505f8d55d3a1a59cbec0c877353134ea31d64",
+    "reserved_at": "2026-10-19T20:08:20.086675-05:00",
+    "run_id": "39351718507"
   }
 }
