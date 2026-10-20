@@ -216,7 +216,7 @@ def main():
             raise RuntimeError('Curated joke bank exhausted; add fresh jokes before publishing')
         index = available[0]
         text = JOKES[index]
-        caption = text + '\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus'
+        caption = text + '\n\nEveryday nonsense. Questionable wisdom.\nLaugh more. Worry less.\nFollow @circuspeanutsdaily for your daily laugh.\n\n#CircusPeanutsDaily #EverydayHumor #LifesACircus'
         rel = 'docs/circus-posts/' + today + '.jpg'
         render(text, ROOT / rel)
         entry = {'state': 'prepared', 'joke_index': index, 'caption': caption, 'image_path': rel}
