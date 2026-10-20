@@ -63,7 +63,7 @@ def build_caption(quote, theme):
     return (
         f"{quote}\n\n"
         f"{context_line}\n\n"
-        "Worth watching. What’s your read?\n\n"
+        "Follow @blacktie_intel for clear thinking about AI, technology, and the human future.\n\n"
         f"#BlackTieIntel {theme_tags}"
     )
 
