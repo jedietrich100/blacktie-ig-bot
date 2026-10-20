@@ -1,0 +1,220 @@
+{
+  "start_date": "2026-10-21",
+  "status": "Editorial production bank; scripts are not proof of rendering, scheduling, or publication.",
+  "defaults": {
+    "faceless": true,
+    "paid_generation": false,
+    "format": "1080x1920 vertical; large captions; one idea; original visuals; no third-party watermarks",
+    "measurement": "Review 72 hours after publication; use 7-day comparison; do not compare raw totals across accounts."
+  },
+  "brands": {
+    "digitalcalmdaily": {
+      "bio": "Simple iPhone, AI & online safety tips.\nOne small tech win at a time.\nFollow for calmer, easier technology.",
+      "series": "One Small Tech Win",
+      "tests": [
+        {
+          "hook": "Your next AI prompt needs this line.",
+          "beats": [
+            "Write: Explain this in plain English.",
+            "Add: Give me one everyday example.",
+            "Read the answer and check anything important."
+          ],
+          "caption": "When an AI answer feels too technical, ask for plain English and one familiar example. Check important details before using them. Save this prompt for later. Follow @digitalcalmdaily for one simple tech win at a time.",
+          "visual": "Animate an original mock conversation clearly labeled Sample prompt. No invented product interface."
+        },
+        {
+          "hook": "A confusing message? Try this first.",
+          "beats": [
+            "Remove names and private details.",
+            "Ask: What is this asking me to do?",
+            "Compare the summary with the original."
+          ],
+          "caption": "AI can help you unpack a confusing message. Remove private information first, then compare its explanation with the original. Save this for later. Follow @digitalcalmdaily for calmer technology.",
+          "visual": "Text-only example message labeled fictional. Do not use private user messages."
+        },
+        {
+          "hook": "Tech help starts with one sentence.",
+          "beats": [
+            "Say what you were trying to do.",
+            "Say what happened instead.",
+            "Write down the exact error."
+          ],
+          "caption": "A clear description gives a helper a useful starting point. Try: I was trying to ___. Instead, ___. The screen says ___. Save this template. Follow @digitalcalmdaily for simple tech help.",
+          "visual": "Three large fill-in cards with a fictional, non-sensitive example."
+        },
+        {
+          "hook": "Before changing five settings, pause.",
+          "beats": [
+            "Choose one change.",
+            "Write down the original setting.",
+            "Check whether that change helped."
+          ],
+          "caption": "When troubleshooting, try one change at a time and keep a note of where you started. It makes the result easier to understand. Save this reminder. Follow @digitalcalmdaily for practical tech confidence.",
+          "visual": "Original checklist animation; no fabricated device demonstration."
+        }
+      ]
+    },
+    "circuspeanutsdaily": {
+      "bio": "Everyday life. Questionable wisdom.\nOriginal laughs about getting through it.\nSmile · Laugh · Repeat.",
+      "series": "Today's Tiny Circus",
+      "tests": [
+        {
+          "hook": "My phone asked me to prove I was human.",
+          "beats": [
+            "I identified twelve traffic lights.",
+            "Then it asked me to try again.",
+            "Apparently my humanity is still under review."
+          ],
+          "caption": "The robots have follow-up questions. Which square was the traffic light hiding in? Follow @circuspeanutsdaily for your daily laugh.",
+          "visual": "Original geometric traffic-light illustration; not a real CAPTCHA screenshot."
+        },
+        {
+          "hook": "I went upstairs with a purpose.",
+          "beats": [
+            "The purpose stayed downstairs.",
+            "I returned to collect it.",
+            "We are now both taking a break."
+          ],
+          "caption": "Some errands require a round trip before the actual errand. Follow @circuspeanutsdaily for everyday nonsense.",
+          "visual": "Cream/orange illustrated staircase and traveling thought bubble."
+        },
+        {
+          "hook": "The dog has a very busy calendar.",
+          "beats": [
+            "Breakfast inspection. Window patrol.",
+            "A meeting about my sandwich.",
+            "Somehow I am the one who needs a planner."
+          ],
+          "caption": "A packed schedule and absolutely no availability after lunch. Follow @circuspeanutsdaily for your daily laugh.",
+          "visual": "Generic illustrated dog silhouette and fictional planner; no need to use the user's pet."
+        },
+        {
+          "hook": "I bought a basket to hide the clutter.",
+          "beats": [
+            "The basket filled up.",
+            "So I bought a bigger basket.",
+            "My organizing system now has a growth strategy."
+          ],
+          "caption": "At this point the baskets need their own room. Follow @circuspeanutsdaily for more questionable household wisdom.",
+          "visual": "Three original illustrated baskets growing in size; punchline revealed last."
+        }
+      ]
+    },
+    "whenparentsneedyou": {
+      "bio": "Helping aging parents, one conversation at a time.\nPractical ideas for adult children.\nSupport with dignity. Room for you, too.",
+      "series": "Words That Help",
+      "tests": [
+        {
+          "hook": "Try an offer they can answer.",
+          "beats": [
+            "Instead of: Let me know if you need anything.",
+            "Try: Would you like company on Saturday?",
+            "Leave room for yes, no, or another idea."
+          ],
+          "caption": "A specific invitation gives your parent something concrete to consider. Let their answer guide the next step. Save this phrase for later. Follow @whenparentsneedyou for practical support with dignity.",
+          "visual": "Warm cream/teal original typography; no stock image implying illness."
+        },
+        {
+          "hook": "Every call doesn't need an agenda.",
+          "beats": [
+            "Ask about an ordinary moment.",
+            "What made you laugh this week?",
+            "Make room to listen without fixing."
+          ],
+          "caption": "Connection can be part of helping, too. Try one everyday question and let the conversation unfold. Follow @whenparentsneedyou for small ways to stay connected.",
+          "visual": "Animated conversation bubbles with clearly fictional examples."
+        },
+        {
+          "hook": "One family task needs one owner.",
+          "beats": [
+            "Name the next step together.",
+            "Agree who will do it.",
+            "Choose when to check back."
+          ],
+          "caption": "Specific plans can make shared family tasks easier to follow. Include your parent in decisions that affect them. Save this for your next family conversation. Follow @whenparentsneedyou.",
+          "visual": "Simple planning card; use only fictional names or role labels."
+        },
+        {
+          "hook": "You can offer help with limits.",
+          "beats": [
+            "I can come for an hour Saturday.",
+            "I can make that call with you Tuesday.",
+            "Choose an offer you can realistically keep."
+          ],
+          "caption": "A clear, realistic offer gives everyone something concrete to work with. You don't have to promise more than you can give. Follow @whenparentsneedyou for supportive, practical ideas.",
+          "visual": "Warm text animation, one example per scene."
+        }
+      ]
+    },
+    "blacktie_intel": {
+      "bio": "AI, technology & the human future.\nClear ideas. Real-world consequences.\nA More Human Tomorrow.",
+      "series": "The Human Question",
+      "tests": [
+        {
+          "hook": "An AI answer can sound certain and be wrong.",
+          "beats": [
+            "A confident sentence is not evidence.",
+            "Ask what supports the claim.",
+            "Check the source before the decision."
+          ],
+          "caption": "A useful question for any confident answer: What would verify this? Follow @blacktie_intel for clear thinking about technology and human judgment.",
+          "visual": "Original abstract type animation; label as commentary, not news."
+        },
+        {
+          "hook": "A demo is not the whole product.",
+          "beats": [
+            "What worked in the demonstration?",
+            "What happens when it goes wrong?",
+            "Who handles the exception?"
+          ],
+          "caption": "The exception often reveals the real experience. These are questions to ask, not claims about a particular product. Follow @blacktie_intel for the human side of technology.",
+          "visual": "Three cinematic typography scenes; no invented company demonstration."
+        },
+        {
+          "hook": "What should your AI be allowed to do?",
+          "beats": [
+            "Drafting an email is one decision.",
+            "Sending it is another.",
+            "Set the boundary before the task."
+          ],
+          "caption": "Capability and permission are different questions. Decide where human approval belongs before handing over a task. Follow @blacktie_intel for thoughtful perspectives on AI.",
+          "visual": "Original draft/approval graphic; no private email."
+        },
+        {
+          "hook": "What happens to the time technology saves?",
+          "beats": [
+            "More tasks?",
+            "More room to think?",
+            "The choice belongs in the plan."
+          ],
+          "caption": "A question worth asking before adopting the next tool: What do we want the saved time for? Follow @blacktie_intel for technology through a human lens.",
+          "visual": "Original clock and negative-space typography, no quantitative claim."
+        }
+      ]
+    }
+  },
+  "weekly_review": {
+    "metrics": [
+      "Follower count and change",
+      "Non-follower reach",
+      "Shares per 1,000 reached",
+      "Saves per 1,000 reached",
+      "Average watch time and completion if available",
+      "Follows attributed to each post, or explicitly unavailable"
+    ],
+    "rules": [
+      "Do not buy followers, automate likes/comments, or use follow-for-follow.",
+      "No unsolicited DMs or outreach; draft collaboration ideas for approval.",
+      "Measure two hook styles per priority account. Change one variable per comparable test.",
+      "After at least three comparable posts per style, use results to select the next batch. Small samples are directional.",
+      "Check recommendation eligibility and profile conversion when access permits.",
+      "Never label a script, pending item or successful-but-skipped workflow as published."
+    ]
+  },
+  "rollout": [
+    "Week 1: restore delivery, record baseline, produce the 16 tests. Preserve existing daily posts and duplicate safeguards.",
+    "Weeks 2–3: aim for four original Reels weekly for DCD and Circus, two weekly for Parents and Black Tie only when publication access is verified; avoid volume that reduces quality.",
+    "Week 4: summarize results and repeat the strongest formats with genuinely new topics. No follower-growth guarantee."
+  ],
+  "profile_note": "Bio suggestions and three pinned-post themes (Start Here, strongest useful example, recurring series) require direct Instagram access. Do not report as applied without visible verification."
+}
