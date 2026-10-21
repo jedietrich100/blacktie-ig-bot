@@ -100,10 +100,15 @@
       "planner_url": "https://app.metricool.com/planner/calendar?blogId=6968914&openWithPostUuid=-2301126192060152170",
       "scheduled_for": "2026-10-20T21:20:00-05:00",
       "accepted_at": "2026-10-21T02:17:11Z",
-      "status": "PENDING"
+      "status": "PUBLISHED",
+      "public_url": "https://www.instagram.com/reel/DevUmYojn1T/",
+      "verified_at": "2026-10-21T02:24:08Z"
     },
     "provider": "metricool",
     "metricool_post_id": "401690620",
-    "accepted_at": "2026-10-21T02:17:11Z"
+    "accepted_at": "2026-10-21T02:17:11Z",
+    "publication_status": "published",
+    "instagram_url": "https://www.instagram.com/reel/DevUmYojn1T/",
+    "verified_at": "2026-10-21T02:24:08Z"
   }
 }
