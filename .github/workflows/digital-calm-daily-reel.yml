@@ -1,52 +1,18 @@
-name: Digital Calm Daily Quick How-To Reel
+name: Digital Calm Daily Legacy Reel Publisher (Retired)
 
+# Reel publication now uses the connected Metricool publisher, independently
+# of GitHub's content generator. Do not add scheduled Buffer retries here.
 on:
-  schedule:
-    # 5:30 PM Chicago, with 5:40 and 5:50 backups across daylight/standard time.
-    # Delayed runs may submit until Central midnight; the shared Python gate
-    # prevents early posting. The ledger makes backup attempts idempotent.
-    - cron: "30,40,50 22 * * *"
-    - cron: "30,40,50 23 * * *"
   workflow_dispatch: {}
 
-concurrency:
-  group: digital-calm-daily-quick-how-to-reel
-  cancel-in-progress: false
-
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  post-reel:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - name: Checkout latest main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install publishing dependency
-        run: pip install requests
-
-      - name: Check schedule using publisher's timing policy
-        id: gate
-        run: python3 dcd/publish_daily_reel.py --check-schedule
-
-      - name: Test Reel schedule and duplicate safeguards
-        if: steps.gate.outputs.run == 'true'
-        run: python3 -m unittest discover -s dcd/tests -v
-
-      - name: Submit today's Reel with durable duplicate protection
-        id: publish
-        if: steps.gate.outputs.run == 'true'
-        env:
-          DCD_BUFFER_API_KEY: ${{ secrets.DCD_BUFFER_API_KEY }}
-          DCD_BUFFER_CHANNEL_ID: ${{ secrets.DCD_BUFFER_CHANNEL_ID }}
-        run: python3 dcd/publish_daily_reel.py
+      - name: Explain the publishing handoff
+        run: |
+          echo "::warning title=Legacy publisher retired::DCD Reels use Metricool. This workflow cannot publish."
+          echo "DCD Reel: not submitted. Use the connected Metricool publisher and reconcile dcd/reel_ledger.json before any recovery." >> "$GITHUB_STEP_SUMMARY"

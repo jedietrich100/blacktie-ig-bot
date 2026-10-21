@@ -1,66 +1,58 @@
 # Digital Calm Daily automation
 
-This folder is isolated from the existing Black Tie Intel bot.
+This folder is isolated from the other brands in this repository.
 
-## What it does
+## Content generation
 
-- Runs every day at 9:45 AM America/Chicago.
-- Rotates categories by weekday:
-  - Monday: iPhone and Apple Tips
-  - Tuesday: AI Tips
-  - Wednesday: Scam and Cybersecurity
-  - Thursday: Simple Tech How-Tos
-  - Friday: Digital Organization
-  - Saturday: Useful Tech Tools
-  - Sunday: Digital Confidence
-- Keeps a rolling topic history and rejects near-duplicate ideas.
-- Avoids time-sensitive claims unless they can be verified; the unattended bot therefore favors evergreen guidance.
-- Creates a consistent faceless Digital Calm Daily graphic locally with Pillow.
-- Preserves clean Instagram paragraph spacing.
-- Sends the finished image and caption to Buffer with `shareNow`.
-- Decides whether the day's message genuinely benefits from a short visual
-  walkthrough. When it does, it creates a matching vertical quick how-to Reel.
-- Publishes applicable Reels at 5:30 PM America/Chicago through Buffer. Topics
-  that are better as a single graphic do not create or publish a Reel.
-- Prevents a second run from publishing the same daily graphic or Reel twice.
+The `digital-calm-daily.yml` workflow generates the day's graphic, caption, JSON,
+and optional vertical how-to Reel at 11:00 UTC. It reuses existing daily assets
+instead of generating duplicates. Finished content is committed under
+`docs/dcd-posts/` and, when applicable, `docs/dcd-reels/`.
 
-## One-time connection required
+The existing `ANTHROPIC_API_KEY` secret is used for generation. No publishing
+credentials or new paid services are required by this change.
 
-Add a GitHub Actions repository secret named:
+## Publishing ownership
 
-`DCD_BUFFER_API_KEY`
+Image publishing is handled separately through the connected Metricool account.
+Reels are also handed to the connected Metricool publisher for Instagram
+`@digitalcalmdaily`, brand `6968914`, at 17:30 America/Chicago. That publisher
+must be enabled separately; this repository does not contain a Metricool API key
+and GitHub Actions does not invoke the Metricool connector.
 
-Use a personal API key from Buffer API settings. The publisher will automatically look for the Instagram channel named Digital Calm Daily.
+The former Buffer Reel workflow is retired. It has no scheduled triggers, no
+publishing credentials, and no publishing step. Manual dispatch only explains
+the handoff and cannot submit a Reel. The historical Buffer scripts and receipt
+records are retained for diagnosis, not as an alternate live publisher. Do not
+invoke the low-level Buffer scripts to retry content.
 
-Optional: if automatic channel discovery ever finds the wrong account, add:
+## Required duplicate protection
 
-`DCD_BUFFER_CHANNEL_ID`
+- Use only the current Central calendar day's committed MP4 and exact caption.
+  A day without an optional Reel is not a failure and must not use an older one.
+- Read fresh `reel_history.json` and `reel_ledger.json`, including all prior
+  provider attempts. Missing or malformed state blocks publication.
+- Check the matching Metricool date range and account for published, scheduled,
+  draft, pending, or failed entries before creating anything. Match the exact
+  caption and source video. An existing pending/published receipt is reconciled,
+  never reposted. A failed/uncertain result requires reconciliation first.
+- Persist a durable, SHA-conditional reservation in `reel_ledger.json` before
+  calling Metricool. Re-read after a conflict and never overwrite another owner.
+- Make only one create request. A timeout, interrupted call, missing receipt,
+  or receipt-write failure leaves the reservation blocking another submission.
+- Record the Metricool receipt and original Buffer attempt without clearing
+  historical reservations. Add an accepted date to `reel_history.json` only
+  after a valid provider receipt. Acceptance is not proof of Instagram delivery.
+- Check the same receipt after its due time. Report a verified Instagram
+  permalink when published, or the exact provider error. Do not automatically
+  recreate failed posts, backfill earlier dates, or retry the separate image.
 
-The existing `ANTHROPIC_API_KEY` secret used by the Black Tie Intel workflow is reused for content generation. No API keys are stored in the repository.
+Historical Buffer reservations remain intentionally blocking. Migrations and
+recoveries must preserve their receipt, source asset, caption hash, and evidence.
 
-Until `DCD_BUFFER_API_KEY` exists, the workflow exits safely without generating or publishing anything.
+## Tests
 
-## Reel backup attempts and duplicate protection
-
-- Scheduled attempts run at 5:30, 5:40 and 5:50 PM Chicago. They may start late;
-  scheduled submissions are allowed only from 5:30 through 5:59 PM that same day.
-  The cutoff is checked again after preparation and immediately before submission.
-- Jobs share one concurrency group and refresh `main` before reading state.
-- The tracked `reel_history.json` retains accepted dates. The tracked
-  `reel_ledger.json` records a durable reservation before the Buffer request, then
-  the returned Buffer post ID. Missing or invalid state blocks publishing.
-- A timeout, interrupted request, or failed receipt write leaves a blocking
-  reservation. Backup attempts never blindly repeat that Buffer request. A Git
-  persistence failure before the reservation reaches the remote prevents submission.
-- Buffer acceptance does not confirm final Instagram delivery. For an uncertain
-  result, inspect the correct channel's Sent and Queue views and the matching
-  caption/video before reconciling the ledger. Retain the reservation while the
-  outcome is uncertain; do not delete it just to trigger another attempt.
-- The existing explicit manual workflow-dispatch path is unchanged. It uses
-  today's files and the same durable guards. It is not a previous-day backfill.
-  Direct execution of the low-level `publish_buffer_reel.py` bypasses these guards
-  and must not be used for retries.
-
-Run offline tests with `python -m unittest discover -s dcd/tests -v` after installing
-`requests`. Tests mock all Buffer/network requests; Git integration tests use only
-temporary local repositories. Do not invoke either publishing script as a test.
+Run `python -m unittest discover -s dcd/tests -v` after installing `requests`.
+Network requests are mocked; Git integration tests use temporary local repos.
+Do not invoke a publishing script as a test. The retirement test additionally
+checks that the legacy workflow has no scheduled trigger or publishing step.
