@@ -1,0 +1,24 @@
+{
+  "topic": "Turning on iPhone's feature to silence calls from unknown numbers, so only contacts and recognized numbers ring through",
+  "headline": "Silence Calls From Strangers",
+  "supporting_text": "Known contacts still ring. Unknown numbers go to voicemail instead of interrupting you.",
+  "caption": "⚡ TODAY’S 30-SECOND TECH WIN\n\nTired of your phone ringing for numbers you don't recognize?\n\nYour iPhone has a setting that can quietly send unknown callers to voicemail, while calls from people in your contacts still ring through as usual.\n\nThis can help cut down on random calls, including ones from numbers pretending to be someone they're not.\n\nTo check it: open Settings, tap Phone, then look for Silence Unknown Callers and turn it on.\n\nYou can always turn it back off if you're expecting a call from a new number, like a doctor's office.\n\nSave this tip for later.\n\nFollow @DigitalCalmDaily for one simple 30-Second Tech Win every day.",
+  "hashtags": [
+    "#DigitalCalmDaily",
+    "#TechMadeSimple",
+    "#PhoneSafety",
+    "#ScamAwareness",
+    "#SeniorTechTips",
+    "#iPhoneTips",
+    "#CalmTech"
+  ],
+  "visual_symbol": "a phone with a muted bell icon next to an unknown number",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "Stop unknown calls from ringing",
+  "reel_steps": [
+    "Open Settings, then tap Phone",
+    "Find Silence Unknown Callers",
+    "Turn the toggle on"
+  ],
+  "category": "Scam and Cybersecurity"
+}
