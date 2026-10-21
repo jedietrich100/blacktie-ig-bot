@@ -25,6 +25,8 @@ publishing credentials, and no publishing step. Manual dispatch only explains
 the handoff and cannot submit a Reel. The historical Buffer scripts and receipt
 records are retained for diagnosis, not as an alternate live publisher. Do not
 invoke the low-level Buffer scripts to retry content.
+The daily Buffer CLI also refuses publication and returns a closed schedule gate,
+so rerunning a historical Actions job cannot revive the old publishing route.
 
 ## Required duplicate protection
 
@@ -56,3 +58,4 @@ Run `python -m unittest discover -s dcd/tests -v` after installing `requests`.
 Network requests are mocked; Git integration tests use temporary local repos.
 Do not invoke a publishing script as a test. The retirement test additionally
 checks that the legacy workflow has no scheduled trigger or publishing step.
+

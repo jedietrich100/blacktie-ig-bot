@@ -1,4 +1,4 @@
-"""Publish today's optional DCD Reel once; stop on uncertain Buffer outcomes."""
+"""Retained Buffer ledger logic. The live CLI publisher is retired."""
 
 from __future__ import annotations
 
@@ -192,9 +192,14 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Historical Actions reruns retain their old workflow steps but check out
+    # current main. Block that path as well as the retired workflow's triggers.
     if sys.argv[1:] == ["--check-schedule"]:
-        check_schedule()
+        with open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a", encoding="utf-8") as output:
+            output.write("run=false\n")
+        report_result("skipped", "Legacy Buffer Reel publisher is retired; use the connected Metricool publisher")
     elif sys.argv[1:]:
         raise SystemExit("Usage: publish_daily_reel.py [--check-schedule]")
     else:
-        main()
+        raise SystemExit("Legacy Buffer Reel publisher is retired; no submission made. Use Metricool.")
+
