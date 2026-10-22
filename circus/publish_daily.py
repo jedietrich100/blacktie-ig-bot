@@ -14,10 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / 'circus/ledger.json'
 BASE = 'https://graph.instagram.com/v26.0'
 ZONE = ZoneInfo('America/Chicago')
-SCHEDULES = {
-    -5: {'0 17 * * *', '17,37 17-19 * * *'},
-    -6: {'0 18 * * *', '17,37 17-19 * * *'},
-}
+DAILY_CRON = '7,27,47 17-23,0-5 * * *'
+# Noon remains the target. Delayed starts may catch up only on their current
+# Chicago date, until midnight; no historic-date argument/backfill is supported.
+SCHEDULES = {-5: {'0 17 * * *', DAILY_CRON}, -6: {'0 18 * * *', DAILY_CRON}}
+
 JOKES = [
     'Life’s a circus.\nWe brought the peanuts.',
     'I finally got 8 hours of sleep.\nIt took me three days, but I got it.',
@@ -156,14 +157,24 @@ def render(text, path):
     image.save(path, 'JPEG', quality=95, optimize=True)
 
 def recent_today(user, token, today):
-    rows = api('GET', user + '/media', token, params={'fields': 'id,timestamp,permalink,caption', 'limit': 100}).get('data')
+    rows = api('GET', user + '/media', token, params={'fields': 'id,timestamp,permalink,caption,media_type,media_product_type', 'limit': 100}).get('data')
     if not isinstance(rows, list):
         raise RuntimeError('Could not inspect recent Circus posts')
-    return [row for row in rows if 'Morning coffee with Luna Grace.' not in row.get('caption', '') and dt.datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00')).astimezone(ZONE).date().isoformat() == today]
+    result = []
+    for row in rows:
+        if dt.datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00')).astimezone(ZONE).date().isoformat() != today:
+            continue
+        if row.get('media_product_type') == 'REELS':
+            continue
+        if row.get('media_type') not in ('IMAGE', 'CAROUSEL_ALBUM'):
+            raise RuntimeError('Unrecognized same-day media type; inspect before publishing')
+        if 'Morning coffee with Luna Grace.' not in row.get('caption', ''):
+            result.append(row)
+    return result
 
 def noon_window_open(now, today=None):
     local = now.astimezone(ZONE)
-    return 12 <= local.hour < 14 and (today is None or local.date().isoformat() == today)
+    return 12 <= local.hour < 24 and (today is None or local.date().isoformat() == today)
 
 
 def schedule_skip_reason(now, scheduled):
@@ -172,7 +183,7 @@ def schedule_skip_reason(now, scheduled):
     if scheduled not in SCHEDULES.get(offset, set()):
         return 'Skipping alternate daylight-saving cron slot'
     if not noon_window_open(local):
-        return 'Skipping outside noon publishing window'
+        return 'Skipping outside same-day publishing window'
     return None
 
 
@@ -198,7 +209,9 @@ def main():
     if account.get('username') != 'circuspeanutsdaily' or str(account.get('user_id') or account.get('id')) != user:
         raise RuntimeError('Credentials do not match @circuspeanutsdaily; publishing blocked')
     print('PASS: verified @circuspeanutsdaily')
-    ledger = json.loads(LEDGER.read_text()) if LEDGER.exists() else {}
+    ledger = json.loads(LEDGER.read_text())  # Missing history is a blocker, not an empty slate.
+    if not isinstance(ledger, dict) or not all(isinstance(entry, dict) and entry.get('state') in ('prepared', 'submitting', 'published') for entry in ledger.values()):
+        raise RuntimeError('Invalid Circus image ledger; publishing blocked')
     rows = recent_today(user, token, today)
     if rows:
         entry = ledger.setdefault(today, {})
@@ -247,7 +260,7 @@ def main():
         raise RuntimeError('Instagram container did not become ready')
     # Rendering, image availability and container processing can cross the cutoff.
     if event_name == 'schedule' and not noon_window_open(dt.datetime.now(ZONE), today):
-        print('Skipping publication: noon publishing window closed during preparation')
+        print('Skipping publication: same-day publishing window closed during preparation')
         return
     entry.update(state='submitting', container_id=container)
     persist(ledger, 'Circus: reserve publication ' + today)
@@ -255,8 +268,8 @@ def main():
         # No publish request was made, so this reservation is safe to release.
         entry.update(state='prepared')
         entry.pop('container_id', None)
-        persist(ledger, 'Circus: defer publication outside noon window ' + today)
-        print('Skipping publication: noon publishing window closed before submission')
+        persist(ledger, 'Circus: defer publication outside same-day window ' + today)
+        print('Skipping publication: same-day publishing window closed before submission')
         return
     result = api('POST', user + '/media_publish', token, data={'creation_id': container})
     entry.update(state='published', media_id=result['id'])
@@ -270,3 +283,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

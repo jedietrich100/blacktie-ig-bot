@@ -25,25 +25,25 @@ def local(value):
 
 def cron_times(cron):
     minutes, hours, *_ = cron.split()
-    utc_hours = range(int(hours.split('-')[0]), int(hours.split('-')[1]) + 1) if '-' in hours else map(int, hours.split(','))
+    utc_hours = [h for part in hours.split(',') for h in (range(int(part.split('-')[0]), int(part.split('-')[1])+1) if '-' in part else [int(part)])]
     return [(hour, int(minute)) for hour in utc_hours for minute in minutes.split(',')]
 
 
 class ScheduleTests(unittest.TestCase):
     def test_primary_and_backups_for_both_offsets(self):
         for day, offset in [('2026-10-04', -5), ('2026-12-04', -6)]:
-            for clock in ['12:00', '12:17', '12:37', '13:17', '13:37', '13:59:59']:
+            for clock in ['12:00', '12:17', '13:59:59', '14:00', '15:33', '23:59:59']:
                 for cron in publisher.SCHEDULES[offset]:
                     with self.subTest(day=day, clock=clock, cron=cron):
                         self.assertIsNone(publisher.schedule_skip_reason(local(day + 'T' + clock), cron))
 
     def test_window_boundaries_and_severely_delayed_start(self):
         for day, offset in [('2026-10-04', -5), ('2026-12-04', -6)]:
-            for clock in ['00:00', '11:59:59', '14:00', '15:33', '23:59']:
+            for clock in ['00:00', '00:01', '11:59:59']:
                 for cron in publisher.SCHEDULES[offset]:
                     with self.subTest(day=day, clock=clock, cron=cron):
                         self.assertEqual(publisher.schedule_skip_reason(local(day + 'T' + clock), cron),
-                                         'Skipping outside noon publishing window')
+                                         'Skipping outside same-day publishing window')
 
     def test_inactive_and_unknown_crons_are_rejected(self):
         for day, active, inactive in [('2026-10-04', -5, -6), ('2026-12-04', -6, -5)]:
@@ -77,13 +77,13 @@ class ScheduleTests(unittest.TestCase):
         self.assertIn('fetch-depth: 0', workflow)
         self.assertIn('python -m unittest discover -s circus/tests -v', workflow)
 
-    def test_each_offset_schedules_exactly_the_five_intended_attempts(self):
+    def test_each_offset_covers_noon_through_midnight(self):
         for offset in [-5, -6]:
             times = []
             for cron in publisher.SCHEDULES[offset]:
-                times.extend((hour + offset, minute) for hour, minute in cron_times(cron)
-                             if 12 <= hour + offset < 14)
-            self.assertEqual(sorted(times), [(12, 0), (12, 17), (12, 37), (13, 17), (13, 37)])
+                times.extend(((hour + offset) % 24, minute) for hour, minute in cron_times(cron)
+                             if 12 <= (hour + offset) % 24 < 24)
+            self.assertEqual(sorted(times), [(12, 0)] + [(h, m) for h in range(12, 24) for m in (7, 27, 47)])
 
     def test_cron_expressions_never_fire_simultaneously(self):
         crons = set.union(*publisher.SCHEDULES.values())
@@ -96,8 +96,9 @@ class PublishSafetyTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.ledger = Path(self.temp.name) / 'ledger.json'
+        self.ledger.write_text('{}')
         self.event = Path(self.temp.name) / 'event.json'
-        self.event.write_text(json.dumps({'schedule': '17,37 17-19 * * *'}))
+        self.event.write_text(json.dumps({'schedule': publisher.DAILY_CRON}))
         self.now = local('2026-10-04T12:17')
         self.rows = []
         self.calls = []
@@ -136,7 +137,7 @@ class PublishSafetyTests(unittest.TestCase):
         self.ledger.write_text(json.dumps(ledger))
         self.saved.append((message, copy.deepcopy(ledger)))
         if self.cutoff_during_reservation and message.startswith('Circus: reserve publication'):
-            self.now = local('2026-10-04T14:00')
+            self.now = local('2026-10-05T00:00')
 
     def fake_api(self, method, path, token, **kwargs):
         self.calls.append((method, path))
@@ -148,7 +149,7 @@ class PublishSafetyTests(unittest.TestCase):
             return {'id': 'container'}
         if (method, path) == ('GET', 'container'):
             if self.cutoff_during_processing:
-                self.now = local('2026-10-04T14:00')
+                self.now = local('2026-10-05T00:00')
             return {'status_code': 'FINISHED'}
         if (method, path) == ('POST', '123/media_publish'):
             # Durable reservation must exist before any external publication.
@@ -156,7 +157,7 @@ class PublishSafetyTests(unittest.TestCase):
             if self.publish_error:
                 raise TimeoutError('Simulated uncertain publish response')
             self.rows = [{'id': 'media', 'timestamp': '2026-10-04T17:17:00+00:00',
-                          'permalink': 'https://example.invalid/post', 'caption': 'daily joke'}]
+                          'permalink': 'https://example.invalid/post', 'caption': 'daily joke', 'media_type': 'IMAGE', 'media_product_type': 'FEED'}]
             return {'id': 'media'}
         if (method, path) == ('GET', 'media'):
             return {'id': 'media', 'permalink': 'https://example.invalid/post'}
@@ -190,7 +191,7 @@ class PublishSafetyTests(unittest.TestCase):
 
     def test_submitting_ledger_reconciles_an_existing_live_post(self):
         self.ledger.write_text(json.dumps({'2026-10-04': {'state': 'submitting', 'joke_index': 2}}))
-        self.rows = [{'id': 'live', 'timestamp': '2026-10-04T17:05:00+00:00', 'caption': 'daily joke'}]
+        self.rows = [{'id': 'live', 'timestamp': '2026-10-04T17:05:00+00:00', 'caption': 'daily joke', 'media_type': 'IMAGE', 'media_product_type': 'FEED'}]
         publisher.main()
         self.assertFalse(any(method == 'POST' for method, _ in self.calls))
         entry = json.loads(self.ledger.read_text())['2026-10-04']
@@ -206,22 +207,22 @@ class PublishSafetyTests(unittest.TestCase):
         self.assertEqual(json.loads(self.ledger.read_text())['2026-10-04']['joke_index'], 2)
 
     def test_late_scheduled_run_does_not_touch_account_or_ledger(self):
-        self.now = local('2026-10-04T15:33')
+        self.now = local('2026-10-05T00:33')
         publisher.main()
         self.assertEqual(self.calls, [])
-        self.assertFalse(self.ledger.exists())
+        self.assertEqual(json.loads(self.ledger.read_text()), {})
 
     def test_wrong_dst_slot_does_not_touch_account_or_ledger(self):
         self.event.write_text(json.dumps({'schedule': '0 18 * * *'}))
         publisher.main()
         self.assertEqual(self.calls, [])
-        self.assertFalse(self.ledger.exists())
+        self.assertEqual(json.loads(self.ledger.read_text()), {})
 
     def test_workflow_push_is_not_a_manual_override(self):
         os.environ['GITHUB_EVENT_NAME'] = 'push'
         publisher.main()
         self.assertEqual(self.calls, [])
-        self.assertFalse(self.ledger.exists())
+        self.assertEqual(json.loads(self.ledger.read_text()), {})
 
     def test_explicit_manual_dispatch_keeps_existing_override_and_duplicate_checks(self):
         os.environ['GITHUB_EVENT_NAME'] = 'workflow_dispatch'
@@ -244,6 +245,48 @@ class PublishSafetyTests(unittest.TestCase):
         self.assertEqual(entry['state'], 'prepared')
         self.assertNotIn('container_id', entry)
 
+    def test_delayed_run_publishes_today_once_after_fourteen(self):
+        self.now = local('2026-10-04T15:33')
+        publisher.main()
+        self.now = local('2026-10-04T23:27')
+        publisher.main()
+        self.assertEqual(self.calls.count(('POST', '123/media_publish')), 1)
+        self.assertEqual(set(json.loads(self.ledger.read_text())), {'2026-10-04'})
+
+    def test_missing_or_corrupt_ledger_blocks_publication(self):
+        self.ledger.unlink()
+        with self.assertRaises(FileNotFoundError):
+            publisher.main()
+        for invalid in ('[]', '{"2026-10-04": {"state": "unknown"}}'):
+            self.ledger.write_text(invalid)
+            with self.assertRaisesRegex(RuntimeError, 'Invalid Circus'):
+                publisher.main()
+        self.assertFalse(any(method == 'POST' for method, _ in self.calls))
+
+
+class ImageFeedTests(unittest.TestCase):
+    def test_reel_cannot_suppress_daily_image(self):
+        rows = [
+            {'id': 'reel', 'timestamp': '2026-10-22T00:00:00+00:00',
+             'media_type': 'VIDEO', 'media_product_type': 'REELS', 'caption': 'joke'},
+            {'id': 'image', 'timestamp': '2026-10-21T19:00:00+00:00',
+             'media_type': 'IMAGE', 'media_product_type': 'FEED', 'caption': 'daily joke'},
+            {'id': 'old', 'timestamp': '2026-10-20T19:00:00+00:00',
+             'media_type': 'IMAGE', 'media_product_type': 'FEED', 'caption': 'old joke'},
+            {'id': 'luna', 'timestamp': '2026-10-21T19:00:00+00:00',
+             'media_type': 'IMAGE', 'media_product_type': 'FEED', 'caption': 'Morning coffee with Luna Grace.'},
+        ]
+        with patch.object(publisher, 'api', return_value={'data': rows}) as api:
+            self.assertEqual([x['id'] for x in publisher.recent_today('123', 'fake', '2026-10-21')], ['image'])
+            self.assertIn('media_product_type', api.call_args.kwargs['params']['fields'])
+
+    def test_unknown_same_day_type_fails_closed(self):
+        with patch.object(publisher, 'api', return_value={'data': [
+            {'id': 'unknown', 'timestamp': '2026-10-21T19:00:00+00:00'}]}):
+            with self.assertRaisesRegex(RuntimeError, 'Unrecognized'):
+                publisher.recent_today('123', 'fake', '2026-10-21')
+
 
 if __name__ == '__main__':
     unittest.main()
+
