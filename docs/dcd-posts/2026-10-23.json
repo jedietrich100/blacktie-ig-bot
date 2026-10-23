@@ -1,0 +1,25 @@
+{
+  "topic": "Adding a date and time to a Reminders app task so it alerts you at the right moment",
+  "headline": "Make Reminders Actually Remind You",
+  "supporting_text": "Add a date and time to a reminder so your phone alerts you right when it matters.",
+  "caption": "⚡ TODAY’S 30-SECOND TECH WIN\n\nEver write a reminder and then forget to check it?\n\nA reminder only helps if it reaches you at the right moment, not just whenever you happen to look.\n\nOpen the Reminders app and create a new reminder for something you need to do.\n\nTap the date and time option and choose when you want to be alerted.\n\nYour phone will gently notify you at that exact moment, so the task doesn't quietly slip away.\n\nSave this tip for later.\n\nFollow @DigitalCalmDaily for one simple 30-Second Tech Win every day.",
+  "hashtags": [
+    "#DigitalCalmDaily",
+    "#TechMadeSimple",
+    "#iPhoneTips",
+    "#StayOrganized",
+    "#SeniorTech",
+    "#RemindersApp",
+    "#EasyTech"
+  ],
+  "visual_symbol": "a simple bell or clock icon next to a checklist",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "Get reminded at the right time",
+  "reel_steps": [
+    "Open Reminders and tap New Reminder",
+    "Type what you need to remember",
+    "Tap the date/time option and set it",
+    "Tap Done to save it"
+  ],
+  "category": "Digital Organization"
+}
