@@ -66,3 +66,9 @@ jobs:
           path: preview/circus-reel/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Explain Circus publishing failure
+        if: failure()
+        run: |
+          echo '::error title=Circus evening Reel NOT VERIFIED::Evening Reel publishing failed; no Instagram publication was verified by this run. If HTTP 401/code 190 appears, reauthorize @circuspeanutsdaily and update only CIRCUS_IG_ACCESS_TOKEN. The separate read-only audit checks live posts and both ledgers.'
+          echo '### Circus evening Reel: failure — no verified publication from this run' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Evening Reel publishing failed; no Instagram publication was verified by this run. If HTTP 401/code 190 appears, reauthorize @circuspeanutsdaily and update only CIRCUS_IG_ACCESS_TOKEN. The separate read-only audit checks live posts and both ledgers.' >> "$GITHUB_STEP_SUMMARY"
