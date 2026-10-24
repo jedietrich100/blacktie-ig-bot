@@ -349,10 +349,24 @@ def render(script, folder, preview=False):
     return output
 
 
+def append_summary(message):
+    with open(os.environ.get("GITHUB_STEP_SUMMARY", os.devnull), "a", encoding="utf-8") as summary:
+        summary.write(message + "\n")
+
+
 def instagram(method, path, token, **kwargs):
     response = requests.request(method, BASE + "/" + path, headers={"Authorization": "Bearer " + token}, timeout=45, **kwargs)
     if not response.ok:
-        raise RuntimeError(f"Instagram request failed: HTTP {response.status_code}")
+        try:
+            error = response.json().get("error", {})
+        except (ValueError, AttributeError):
+            error = {}
+        code = error.get("code")
+        if response.status_code == 401 or code == 190:
+            raise RuntimeError(f"Circus Instagram authorization invalid (HTTP {response.status_code}, code {code}); "
+                               "reauthorize @circuspeanutsdaily via Instagram Login and replace only "
+                               "CIRCUS_IG_ACCESS_TOKEN. No Reel was published by this request.")
+        raise RuntimeError(f"Circus Instagram HTTP {response.status_code}; error code {code}")
     return response.json()
 
 
@@ -428,8 +442,10 @@ def publish(config, state, day, folder, allowed):
         raise RuntimeError("Could not reconcile recent Instagram media")
     match = reconcile(rows, entry["marker"])
     if match:
-        entry.update(state="published", media_id=match["id"], permalink=match.get("permalink"))
+        entry.update(state="published", media_id=match["id"], permalink=match.get("permalink"),
+                     verified_at=dt.datetime.now(ZONE).isoformat())
         persist(state, "Circus Reel: reconcile live post " + day)
+        append_summary("Circus Peanuts Reel RECONCILED with live Instagram media: " + str(entry.get("permalink")))
         return
     if entry.get("state") in ("submitting", "creating_container"):
         raise RuntimeError("Prior submission needs reconciliation; no blind retry")
@@ -475,6 +491,7 @@ def publish(config, state, day, folder, allowed):
     entry.update(permalink=verified["permalink"], verified_at=dt.datetime.now(ZONE).isoformat())
     persist(state, "Circus Reel: verify publication " + day)
     print("LIVE_REEL:", entry["permalink"])
+    append_summary("Circus Peanuts Reel LIVE and verified: " + entry["permalink"])
 
 
 def run(preview=False, output=None):
@@ -497,11 +514,15 @@ def run(preview=False, output=None):
         raise RuntimeError("Live pipeline requires schedule; manual dispatch is preview-only")
     if not allowed():
         print("Outside the evening window; no account or state changes")
+        append_summary("Circus Peanuts Reel NOT PUBLISHED by this run: outside the authorized evening window. "
+                       "A successful/skipped workflow is not a live Instagram receipt.")
         return
     git("pull", "--ff-only", "origin", "main")
     state = load_state()
     if state["jobs"].get(day, {}).get("state") == "published":
         print("Already published today's Reel; no repeat")
+        append_summary("Circus Peanuts Reel ALREADY RECORDED as published in the ledger; "
+                       "no new submission. The read-only audit checks it against actual Instagram media.")
         return
     if config["publishing_enabled"]:
         check_account(config)  # Fail before reserving content if credentials are invalid.

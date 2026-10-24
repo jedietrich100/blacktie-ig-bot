@@ -1,0 +1,77 @@
+name: Circus Peanuts Publication Audit
+
+on:
+  schedule:
+    # 4:17 AM Central daylight time / 3:17 AM Central standard time.
+    # Audit the prior local date after both daily publishing windows close.
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Chicago calendar date YYYY-MM-DD (blank = yesterday). Read-only.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: circus-peanuts-publication-audit
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only auditor requirements
+        run: pip install requests
+      - name: Verify live Circus posts against image and Reel receipts
+        id: audit
+        continue-on-error: true
+        env:
+          CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
+          CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
+          AUDIT_DATE: ${{ inputs.date }}
+        run: python circus/audit_publications.py
+      - name: Open an actionable GitHub incident for the owner
+        if: steps.audit.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_DATE: ${{ inputs.date }}
+        run: |
+          set -euo pipefail
+          DAY=$(python - <<'PY'
+          import datetime as dt
+          import os
+          from zoneinfo import ZoneInfo
+          print(os.getenv('AUDIT_DATE') or (dt.datetime.now(ZoneInfo('America/Chicago')).date() - dt.timedelta(days=1)).isoformat())
+          PY
+          )
+          TITLE="Circus Peanuts: publication verification $DAY"
+          export TITLE
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --limit 300 --json title,number | python -c 'import json,os,sys; print(next((x["number"] for x in json.load(sys.stdin) if x["title"] == os.environ["TITLE"]), ""))')
+          if [ -z "$EXISTING" ]; then
+            cat > "$RUNNER_TEMP/circus-audit-incident.md" <<EOF
+          @jedietrich100 — The read-only Circus Peanuts Instagram audit for **$DAY** did not confirm both daily image and evening Reel with matching repository receipts.
+
+          **What to do:** Open the [audit workflow run](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) and read its step summary. It distinguishes a missing live post, an unrecorded post, and an invalid Instagram connection. If HTTP 401 / code 190 is shown, a fresh **@circuspeanutsdaily** Instagram Login authorization and replacement of **CIRCUS_IG_ACCESS_TOKEN** is required.
+
+          **Safety:** No recovery post was attempted. Do not retry older posts without checking the live Instagram account. This audit never updates any account credentials or enables paid generation, and does not touch other brands.
+          EOF
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/circus-audit-incident.md" --assignee jedietrich100
+          else
+            echo "Existing incident #$EXISTING already covers $DAY; no duplicate alert issue."
+          fi
+      - name: Mark unverified publication as a failed job
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo '::error title=Circus Peanuts publication NOT VERIFIED::See the audit summary and owner incident. An Actions green check or skipped schedule is not proof of an Instagram post.'
+          exit 1
