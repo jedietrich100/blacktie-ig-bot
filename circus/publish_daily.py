@@ -111,8 +111,19 @@ def api(method, path, token, **kwargs):
             error = response.json().get('error', {})
         except ValueError:
             error = {}
+        if response.status_code == 401 or error.get("code") == 190:
+            raise RuntimeError(f'Circus Instagram authorization invalid (HTTP {response.status_code}, code {error.get("code")}); '
+                               'reauthorize @circuspeanutsdaily via Instagram Login and replace only '
+                               'CIRCUS_IG_ACCESS_TOKEN. No daily post was published by this request.')
         raise RuntimeError(f'Instagram HTTP {response.status_code}; code {error.get("code")}; {error.get("message", "Request failed")}')
     return response.json()
+
+def not_published(reason):
+    print(reason)
+    with open(os.environ.get('GITHUB_STEP_SUMMARY', os.devnull), 'a', encoding='utf-8') as summary:
+        summary.write('Circus Peanuts Daily NOT PUBLISHED by this workflow run: ' + reason +
+                      '. A successful or skipped schedule is not an Instagram receipt.\n')
+
 
 def font(size, bold=False):
     name = 'DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf'
@@ -195,10 +206,10 @@ def main():
         scheduled = event.get('schedule', '')
         reason = schedule_skip_reason(now, scheduled)
         if reason:
-            print(reason)
+            not_published(reason)
             return
     elif event_name not in ('workflow_dispatch', ''):
-        print('Skipping unsupported event; use an explicit manual dispatch')
+        not_published('Skipping unsupported event; use an explicit manual dispatch')
         return
     today = now.date().isoformat()
     token = os.environ['CIRCUS_IG_ACCESS_TOKEN'].strip()
@@ -218,6 +229,9 @@ def main():
         entry.update(state='published', media_id=rows[0]['id'], permalink=rows[0].get('permalink'), verified_at=now.isoformat())
         persist(ledger, 'Circus: reconcile verified post ' + today)
         print('Already live today:', rows[0].get('permalink', rows[0]['id']))
+        with open(os.environ.get('GITHUB_STEP_SUMMARY', os.devnull), 'a', encoding='utf-8') as summary:
+            summary.write('Circus Peanuts image RECONCILED with live Instagram media: ' +
+                          str(rows[0].get('permalink', rows[0]['id'])) + '\n')
         return
     entry = ledger.get(today, {})
     if entry.get('state') in ('submitting', 'published'):
@@ -260,7 +274,7 @@ def main():
         raise RuntimeError('Instagram container did not become ready')
     # Rendering, image availability and container processing can cross the cutoff.
     if event_name == 'schedule' and not noon_window_open(dt.datetime.now(ZONE), today):
-        print('Skipping publication: same-day publishing window closed during preparation')
+        not_published('Skipping publication: same-day publishing window closed during preparation')
         return
     entry.update(state='submitting', container_id=container)
     persist(ledger, 'Circus: reserve publication ' + today)
@@ -269,7 +283,7 @@ def main():
         entry.update(state='prepared')
         entry.pop('container_id', None)
         persist(ledger, 'Circus: defer publication outside same-day window ' + today)
-        print('Skipping publication: same-day publishing window closed before submission')
+        not_published('Skipping publication: same-day publishing window closed before submission')
         return
     result = api('POST', user + '/media_publish', token, data={'creation_id': container})
     entry.update(state='published', media_id=result['id'])
