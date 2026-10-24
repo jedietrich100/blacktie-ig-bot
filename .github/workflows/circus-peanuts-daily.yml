@@ -37,4 +37,9 @@ jobs:
           CIRCUS_IG_ACCESS_TOKEN: ${{ secrets.CIRCUS_IG_ACCESS_TOKEN }}
           CIRCUS_IG_USER_ID: ${{ secrets.CIRCUS_IG_USER_ID }}
         run: python circus/publish_daily.py
-
+      - name: Explain Circus publishing failure
+        if: failure()
+        run: |
+          echo '::error title=Circus daily image NOT VERIFIED::Daily image publishing failed; no Instagram publication was verified by this run. If HTTP 401/code 190 appears, reauthorize @circuspeanutsdaily and update only CIRCUS_IG_ACCESS_TOKEN. The separate read-only audit checks live posts and both ledgers.'
+          echo '### Circus daily image: failure — no verified publication from this run' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Daily image publishing failed; no Instagram publication was verified by this run. If HTTP 401/code 190 appears, reauthorize @circuspeanutsdaily and update only CIRCUS_IG_ACCESS_TOKEN. The separate read-only audit checks live posts and both ledgers.' >> "$GITHUB_STEP_SUMMARY"
