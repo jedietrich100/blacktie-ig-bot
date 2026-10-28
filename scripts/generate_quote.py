@@ -11,12 +11,22 @@ import datetime
 import json
 import os
 import random
+import re
+import sys
+import time
+import unicodedata
 
 import anthropic
 
 HERE = os.path.dirname(__file__)
 THEMES_PATH = os.path.join(HERE, "..", "Config", "themes.json")
 HISTORY_PATH = os.path.join(HERE, "..", "Config", "quote_history.json")
+
+MODEL = "claude-sonnet-5"
+# One bounded application retry loop; SDK retries are disabled below.
+TOKEN_BUDGETS = (256, 512, 512)
+RETRY_DELAYS = (2, 4)
+REQUEST_TIMEOUT = 30.0
 
 STYLE_GUIDE = """
 Black Tie Intel voice requirements:
@@ -57,8 +67,111 @@ def save_history(history):
 
 def clean_quote(text):
     text = " ".join(text.strip().split())
-    text = text.strip('"“”')
+    text = text.strip('"“”').strip()
     return text
+
+
+def quote_key(text):
+    """Catch literal repeats despite case, spacing, or punctuation changes."""
+    text = unicodedata.normalize("NFKC", text).casefold()
+    return " ".join(re.findall(r"\w+", text))
+
+
+def response_summary(message):
+    """Only emit bounded metadata, never prompts, quote text, or raw responses."""
+    stop = getattr(message, "stop_reason", None)
+    known_stops = {"end_turn", "max_tokens", "stop_sequence", "tool_use",
+                   "pause_turn", "refusal", "model_context_window_exceeded"}
+    blocks = getattr(message, "content", None)
+    if not isinstance(blocks, list):
+        blocks = []
+    types = [getattr(block, "type", None) for block in blocks]
+    usage = getattr(message, "usage", None)
+    summary = {
+        "stop_reason": stop if isinstance(stop, str) and stop in known_stops else "unknown",
+        "content_blocks": len(blocks),
+        "text_blocks": types.count("text"),
+        "thinking_blocks": types.count("thinking"),
+        "other_blocks": sum(kind not in ("text", "thinking") for kind in types),
+    }
+    for name in ("input_tokens", "output_tokens"):
+        value = getattr(usage, name, None)
+        if type(value) is int and 0 <= value <= 100_000_000:
+            summary[name] = value
+    return summary
+
+
+def validate_quote(message, recent_quotes):
+    blocks = getattr(message, "content", None)
+    if not isinstance(blocks, list):
+        return None, "invalid_content"
+    parts = []
+    for block in blocks:
+        kind = getattr(block, "type", None)
+        if not isinstance(kind, str):
+            return None, "invalid_content"
+        if kind == "text":
+            value = getattr(block, "text", None)
+            if not isinstance(value, str):
+                return None, "invalid_content"
+            parts.append(value)
+        elif kind not in {"thinking", "redacted_thinking"}:
+            return None, "unsupported_content"
+    text = "".join(parts)
+    quote = clean_quote(text)
+    if not quote or not any(char.isalnum() for char in quote):
+        return None, "empty_text"
+    if "\n" in text.strip() or "\r" in text.strip():
+        return None, "multiple_lines"
+    if len(quote.split()) > 20:
+        return None, "too_many_words"
+    if quote_key(quote) in {quote_key(previous) for previous in recent_quotes}:
+        return None, "duplicate_quote"
+    return quote, None
+
+
+def generate_quote(client, prompt, recent_quotes, sleep=None):
+    """Retry generation only; no partial result or fallback may reach publishing."""
+    if sleep is None:
+        sleep = time.sleep
+    for attempt, max_tokens in enumerate(TOKEN_BUDGETS, start=1):
+        summary = {"attempt": attempt, "max_attempts": len(TOKEN_BUDGETS),
+                   "max_tokens": max_tokens}
+        retryable = True
+        try:
+            message = client.messages.create(
+                model=MODEL, max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except anthropic.APIConnectionError:
+            reason = "connection_error"
+        except anthropic.APIStatusError as error:
+            status = error.status_code
+            # Never include the SDK exception string/body/headers in logs.
+            summary["http_status"] = status if type(status) is int else None
+            retryable = type(status) is int and (status in {408, 409, 429} or 500 <= status <= 599)
+            reason = "api_status_error"
+        except anthropic.APIError:
+            reason, retryable = "api_error", False
+        else:
+            summary.update(response_summary(message))
+            if summary["stop_reason"] == "max_tokens":
+                reason = "truncated_response"
+            elif summary["stop_reason"] != "end_turn":
+                reason, retryable = "incomplete_or_refused_response", False
+            else:
+                quote, reason = validate_quote(message, recent_quotes)
+                if reason is None:
+                    return quote
+                if reason == "unsupported_content":
+                    retryable = False
+
+        summary["reason"] = reason
+        summary["retrying"] = retryable and attempt < len(TOKEN_BUDGETS)
+        print("QUOTE_GENERATION: " + json.dumps(summary, sort_keys=True), file=sys.stderr)
+        if not summary["retrying"]:
+            raise RuntimeError(f"Quote generation stopped after {attempt} attempt(s): {reason}") from None
+        sleep(RETRY_DELAYS[attempt - 1])
 
 
 def main():
@@ -89,20 +202,8 @@ def main():
         f"{avoid_block}"
     )
 
-    client = anthropic.Anthropic()
-    message = client.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=100,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    quote_text = clean_quote(
-        "".join(block.text for block in message.content if block.type == "text")
-    )
-
-    word_count = len(quote_text.split())
-    if not quote_text or word_count > 24 or "\n" in quote_text:
-        raise RuntimeError(f"Generated quote failed format check: {quote_text!r}")
+    with anthropic.Anthropic(max_retries=0, timeout=REQUEST_TIMEOUT) as client:
+        quote_text = generate_quote(client, prompt, recent_quotes)
 
     result = {
         "day": today,
@@ -127,3 +228,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,9 +1,12 @@
 import datetime
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location("run_daily", Path(__file__).resolve().parents[1] / "run_daily.py")
@@ -53,6 +56,29 @@ class AssetReuseTests(unittest.TestCase):
             run_daily.main()
         self.assertEqual(self.caption.read_text(), run_daily.build_caption(data["quote"], data["theme"]))
 
+    def test_generator_failure_never_renders_or_creates_assets(self):
+        with patch.object(run_daily, "run", side_effect=RuntimeError("Generator exhausted")) as runner:
+            with self.assertRaises(RuntimeError):
+                run_daily.main()
+        self.assertEqual(runner.call_count, 1)
+        self.assertTrue(runner.call_args.args[0][-1].endswith("generate_quote.py"))
+        self.assertFalse(self.image.exists())
+        self.assertFalse(self.caption.exists())
+        self.assertFalse((self.root / "scripts/_today_image_path.txt").exists())
+        self.assertFalse((self.root / "scripts/_today_caption.txt").exists())
+
+    def test_successful_subprocess_diagnostics_do_not_pollute_json(self):
+        diagnostic = 'QUOTE_GENERATION: {"reason": "empty_text", "retrying": true}\n'
+        result = SimpleNamespace(returncode=0, stdout='{"quote": "Valid quote."}\n', stderr=diagnostic)
+        output, errors = io.StringIO(), io.StringIO()
+        with patch.object(run_daily.subprocess, "run", return_value=result), \
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            data = json.loads(run_daily.run(["test-generator"]))
+        self.assertEqual(data["quote"], "Valid quote.")
+        self.assertEqual(errors.getvalue(), diagnostic)
+        self.assertEqual(output.getvalue(), "")
+
 
 if __name__ == "__main__":
     unittest.main()
+

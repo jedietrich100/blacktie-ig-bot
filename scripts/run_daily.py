@@ -47,9 +47,11 @@ THEME_CAPTIONS = {
 
 def run(cmd):
     result = subprocess.run(cmd, capture_output=True, text=True)
+    # The generator's sanitized retry diagnostics belong in logs, not its JSON.
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="" if result.stderr.endswith("\n") else "\n")
     if result.returncode != 0:
         print(result.stdout)
-        print(result.stderr, file=sys.stderr)
         raise RuntimeError(f"Command failed: {' '.join(cmd)}")
     return result.stdout.strip()
 
@@ -108,3 +110,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
