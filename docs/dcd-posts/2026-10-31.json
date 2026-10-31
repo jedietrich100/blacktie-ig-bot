@@ -1,0 +1,25 @@
+{
+  "topic": "Using location-based reminders in the Reminders app so a task pops up when you arrive or leave a place",
+  "headline": "Reminders That Know Where You Are",
+  "supporting_text": "Set a reminder to pop up when you arrive or leave somewhere, like a store or home.",
+  "caption": "⚡ TODAY’S 30-SECOND TECH WIN\n\nEver remember an errand the moment you leave the store, instead of while you're still inside?\n\nThe Reminders app can nudge you at the right place, not just the right time.\n\nOpen Reminders and create a new reminder, then tap the small info icon next to it.\n\nTurn on “Remind me at a Location” and choose a place, like Home or a store you visit often.\n\nChoose whether you want the alert when you arrive or when you leave, and you're set.\n\nSave this tip for later.\n\nFollow @DigitalCalmDaily for one simple 30-Second Tech Win every day.",
+  "hashtags": [
+    "#DigitalCalmDaily",
+    "#TechMadeSimple",
+    "#iPhoneTips",
+    "#SmartLiving",
+    "#TechForEveryone",
+    "#SeniorTech",
+    "#EverydayTech"
+  ],
+  "visual_symbol": "a map pin with a small bell",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "Let location remind you, not memory",
+  "reel_steps": [
+    "Create a new reminder in Reminders",
+    "Tap the info icon beside it",
+    "Turn on 'Remind me at a Location'",
+    "Pick a place and arrive-or-leave option"
+  ],
+  "category": "Useful Tech Tools"
+}

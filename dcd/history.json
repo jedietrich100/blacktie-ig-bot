@@ -286,5 +286,11 @@
     "category": "Digital Organization",
     "topic": "Pinning an important note to the top of the Notes app so it's always easy to find",
     "headline": "Pin A Note To The Top"
+  },
+  {
+    "date": "2026-10-31",
+    "category": "Useful Tech Tools",
+    "topic": "Using location-based reminders in the Reminders app so a task pops up when you arrive or leave a place",
+    "headline": "Reminders That Know Where You Are"
   }
 ]
