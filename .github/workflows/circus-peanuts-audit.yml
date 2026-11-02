@@ -1,16 +1,9 @@
 name: Circus Peanuts Publication Audit
 
+# Circus Peanuts account retirement requested by owner on 2026-11-01.
+# No scheduled, push, or other automatic runs remain.
 on:
-  schedule:
-    # 4:17 AM Central daylight time / 3:17 AM Central standard time.
-    # Audit the prior local date after both daily publishing windows close.
-    - cron: '17 9 * * *'
-  workflow_dispatch:
-    inputs:
-      date:
-        description: 'Chicago calendar date YYYY-MM-DD (blank = yesterday). Read-only.'
-        required: false
-        type: string
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -22,6 +15,7 @@ concurrency:
 
 jobs:
   verify:
+    if: ${{ false }}  # Permanently skip retired account workflows
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
