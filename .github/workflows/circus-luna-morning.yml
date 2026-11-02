@@ -1,8 +1,9 @@
 name: Circus Luna morning special
+# Circus Peanuts account retirement requested by owner on 2026-11-01.
+# No scheduled, push, or other automatic runs remain.
 on:
-  schedule:
-    - cron: '0 12 2 10 *'
   workflow_dispatch: {}
+
 permissions:
   contents: write
 concurrency:
@@ -10,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: ${{ false }}  # Permanently skip retired account workflows
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
