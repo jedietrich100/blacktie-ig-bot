@@ -1,12 +1,8 @@
 name: Circus Peanuts Daily
 
+# Circus Peanuts account retirement requested by owner on 2026-11-01.
+# No scheduled, push, or other automatic runs remain.
 on:
-  schedule:
-    # Noon Chicago target; off-peak backups every 20 minutes through midnight.
-    # Python applies the Chicago date/hour gate for DST and delayed starts.
-    - cron: '0 17 * * *'
-    - cron: '0 18 * * *'
-    - cron: '7,27,47 17-23,0-5 * * *'
   workflow_dispatch: {}
 
 permissions:
@@ -18,6 +14,7 @@ concurrency:
 
 jobs:
   publish:
+    if: ${{ false }}  # Permanently skip retired account workflows
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
