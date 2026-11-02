@@ -1,17 +1,8 @@
 name: Circus Peanuts Evening Reel
 
+# Circus Peanuts account retirement requested by owner on 2026-11-01.
+# No scheduled, push, or other automatic runs remain.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/circus-peanuts-reel.yml'
-      - 'circus/reels/**'
-      - 'circus/tests/test_reels.py'
-      - '!circus/reels/state.json'
-  schedule:
-    # Target 6 PM Chicago; back up every 20 minutes until local midnight.
-    # The Python date/hour gate handles DST and excludes the extra UTC slot.
-    - cron: '0,20,40 23,0-5 * * *'
   workflow_dispatch: {}
 
 permissions:
@@ -24,6 +15,7 @@ concurrency:
 
 jobs:
   reel:
+    if: ${{ false }}  # Permanently skip retired account workflows
     # Owner-authorized daily silent Reels; config.json controls publication.
     # No repository-variable setup is required.
     runs-on: ubuntu-latest
