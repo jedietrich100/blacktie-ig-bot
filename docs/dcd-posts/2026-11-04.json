@@ -1,0 +1,25 @@
+{
+  "topic": "Checking the real email address behind a sender's display name before trusting a message",
+  "headline": "See Who Really Sent It",
+  "supporting_text": "Tap the sender's name to reveal their full email address, not just the display name.",
+  "caption": "⚡ TODAY’S 30-SECOND TECH WIN\n\nA message can show a friendly name like \"Bank Support\" even when the actual email address looks nothing like the real company.\n\nDisplay names are easy to fake, but the full email address underneath is harder to disguise.\n\nNext time an email feels slightly off, tap or click on the sender's name at the top of the message.\n\nThis reveals the full email address, so you can compare it to ones you've received from that company before.\n\nIf the address looks strange, misspelled, or unfamiliar, treat the message with extra caution before clicking anything inside it.\n\nThis small check takes seconds and can help you catch a fake message before it causes any trouble.\n\nSave this tip for later.\n\nFollow @DigitalCalmDaily for one simple 30-Second Tech Win every day.",
+  "hashtags": [
+    "#DigitalCalmDaily",
+    "#TechMadeSimple",
+    "#ScamAwareness",
+    "#EmailSafety",
+    "#OnlineSafetyTips",
+    "#SeniorTechTips",
+    "#StaySafeOnline"
+  ],
+  "visual_symbol": "a magnifying glass over an email envelope",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "Spot a fake sender fast",
+  "reel_steps": [
+    "Open the suspicious email or message",
+    "Tap the sender's name or photo at the top",
+    "Read the full email address shown",
+    "Compare it to a trusted past message"
+  ],
+  "category": "Scam and Cybersecurity"
+}
