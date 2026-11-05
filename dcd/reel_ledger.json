@@ -412,13 +412,19 @@
     "verified_at": "2026-11-04T23:38:06.765Z"
   },
   "2026-11-05": {
-    "state": "submitting",
+    "state": "submitted",
     "provider": "metricool",
     "brand_id": "6968914",
     "network": "instagram",
     "account": "digitalcalmdaily",
     "video_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/2a42459641f8201046ff9731d5d6bfc24c083d02/docs/dcd-reels/2026-11-05.mp4",
     "caption_sha256": "8e81d1e58e44ff500fabaa9c0eda634953fb19c2f1c24dad03a5b2f1d0aededc",
-    "reserved_at": "2026-11-05T23:29:55.303Z"
+    "reserved_at": "2026-11-05T23:29:55.303Z",
+    "post_id": "418354769",
+    "uuid": "2533604537820662318",
+    "status": "PENDING",
+    "planner_url": "https://app.metricool.com/planner/calendar?blogId=6968914&openWithPostUuid=2533604537820662318",
+    "scheduled_for": "2026-11-05T17:36:00-06:00",
+    "accepted_at": "2026-11-05T23:30:57.903Z"
   }
 }
