@@ -234,8 +234,9 @@
     "caption_sha256": "2a75248af1190bde6edcdbbbc8dbc707bb505d730ce4b38baae92b26ea27e102",
     "container_id": "18111802952148189",
     "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/816037e307992420d212e6832e3871c32e143f15/docs/posts/2026-11-06.jpg",
+    "media_id": "17886348438625834",
     "publish_attempt": 1,
-    "status": "publishing",
-    "updated_at": "2026-11-06T19:45:01.812169+00:00"
+    "status": "published_unverified",
+    "updated_at": "2026-11-06T19:45:07.354061+00:00"
   }
 }
