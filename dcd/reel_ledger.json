@@ -472,7 +472,7 @@
     "verified_at": "2026-11-07T23:32:09.776Z"
   },
   "2026-11-08": {
-    "state": "accepted",
+    "state": "published",
     "provider": "metricool",
     "brand_id": "6968914",
     "network": "instagram",
@@ -482,9 +482,13 @@
     "reserved_at": "2026-11-08T23:22:23.142Z",
     "post_id": "421184347",
     "uuid": "-6977211640310380244",
-    "status": "PENDING",
+    "status": "PUBLISHED",
     "planner_url": "https://app.metricool.com/planner/calendar?blogId=6968914&openWithPostUuid=-6977211640310380244",
     "scheduled_for": "2026-11-08T17:30:00-06:00",
-    "accepted_at": "2026-11-08T23:22:54.487Z"
+    "accepted_at": "2026-11-08T23:22:54.487Z",
+    "publication_status": "published",
+    "public_url": "https://www.instagram.com/reel/Dff8QD1kY9F/",
+    "instagram_url": "https://www.instagram.com/reel/Dff8QD1kY9F/",
+    "verified_at": "2026-11-08T23:32:58.470Z"
   }
 }
