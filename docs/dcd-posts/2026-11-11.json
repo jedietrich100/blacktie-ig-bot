@@ -1,0 +1,25 @@
+{
+  "topic": "Turning on two-step verification for your most important account, like email, for extra protection",
+  "headline": "Add A Second Lock To Email",
+  "supporting_text": "Turn on two-step verification so a stolen password alone can't get someone in.",
+  "caption": "⚡ TODAY’S 30-SECOND TECH WIN\n\nYour email account is often the key to everything else — if someone gets into it, they can reset passwords for your other accounts too.\n\nTwo-step verification adds a second lock. Even if someone learns your password, they also need a code sent to your phone or email to get in.\n\nOpen your email app or account website, look in Settings for \"Security\" or \"Sign-In,\" and look for an option like \"Two-Step Verification\" or \"Two-Factor Authentication.\" Turn it on and follow the prompts.\n\nIt takes under a minute, but it can make your account much harder to break into.\n\nSave this tip for later.\n\nFollow @DigitalCalmDaily for one simple 30-Second Tech Win every day.",
+  "hashtags": [
+    "#DigitalCalmDaily",
+    "#TechMadeSimple",
+    "#OnlineSafety",
+    "#CyberSecurityTips",
+    "#EmailSecurity",
+    "#TechForSeniors",
+    "#StaySafeOnline"
+  ],
+  "visual_symbol": "a padlock with a small shield behind it",
+  "create_quick_how_to_reel": true,
+  "reel_hook": "Give your email a second lock",
+  "reel_steps": [
+    "Open your email app or account website",
+    "Go to Settings, then Security or Sign-In",
+    "Find Two-Step Verification and turn it on",
+    "Follow the prompts to add a phone or backup email"
+  ],
+  "category": "Scam and Cybersecurity"
+}

@@ -1,0 +1,15 @@
+⚡ TODAY’S 30-SECOND TECH WIN
+
+Your email account is often the key to everything else — if someone gets into it, they can reset passwords for your other accounts too.
+
+Two-step verification adds a second lock. Even if someone learns your password, they also need a code sent to your phone or email to get in.
+
+Open your email app or account website, look in Settings for "Security" or "Sign-In," and look for an option like "Two-Step Verification" or "Two-Factor Authentication." Turn it on and follow the prompts.
+
+It takes under a minute, but it can make your account much harder to break into.
+
+Save this tip for later.
+
+Follow @DigitalCalmDaily for one simple 30-Second Tech Win every day.
+
+#DigitalCalmDaily #TechMadeSimple #OnlineSafety #CyberSecurityTips #EmailSecurity #TechForSeniors #StaySafeOnline
