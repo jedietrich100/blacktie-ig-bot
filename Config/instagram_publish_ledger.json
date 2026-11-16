@@ -353,7 +353,7 @@
     "account_id": "17841434445662205",
     "caption_sha256": "32a3defd13ec13b203cf4c2e9704289dd5b39e9a7f33f087af9276e71808c8d1",
     "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/74260d81a7e43ef946923714065a961d8e32d2fc/docs/posts/2026-11-16.jpg",
-    "status": "prepared",
-    "updated_at": "2026-11-16T22:35:40.455241+00:00"
+    "status": "creating",
+    "updated_at": "2026-11-16T22:35:42.436180+00:00"
   }
 }
