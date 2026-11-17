@@ -364,8 +364,9 @@
   "2026-11-17": {
     "account_id": "17841434445662205",
     "caption_sha256": "42e82767e014e0af2a3f368b69a7dc3ec1b1d610471fa41ff3ab77f7d58e7099",
+    "container_id": "18114413882148189",
     "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/25c32bdbe6da3f892c48ac3b0196186acaa2fd67/docs/posts/2026-11-17.jpg",
-    "status": "creating",
-    "updated_at": "2026-11-17T21:24:57.489201+00:00"
+    "status": "prepared",
+    "updated_at": "2026-11-17T21:25:03.942133+00:00"
   }
 }
