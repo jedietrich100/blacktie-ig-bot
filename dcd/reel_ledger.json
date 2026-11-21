@@ -710,5 +710,15 @@
     "public_url": "https://www.instagram.com/reel/Df-1zHxkbtt/",
     "instagram_url": "https://www.instagram.com/reel/Df-1zHxkbtt/",
     "verified_at": "2026-11-20T23:31:54.988Z"
+  },
+  "2026-11-21": {
+    "state": "submitting",
+    "provider": "metricool",
+    "brand_id": "6968914",
+    "network": "instagram",
+    "account": "digitalcalmdaily",
+    "video_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/61f8886e8d3816bf4133c3a05d7da3434423d196/docs/dcd-reels/2026-11-21.mp4",
+    "caption_sha256": "46b4e7ca49fee547498887207c96936a48ce7f80a5418f4077d6bcbd987b33f8",
+    "reserved_at": "2026-11-21T23:24:38.811Z"
   }
 }
