@@ -732,7 +732,7 @@
     "verified_at": "2026-11-21T23:32:55.748Z"
   },
   "2026-11-22": {
-    "state": "submitted",
+    "state": "failed",
     "provider": "metricool",
     "brand_id": "6968914",
     "network": "instagram",
@@ -742,9 +742,12 @@
     "reserved_at": "2026-11-22T23:30:16.357Z",
     "post_id": "438085237",
     "uuid": "813728476439332408",
-    "status": "PENDING",
+    "status": "ERROR",
     "planner_url": "https://app.metricool.com/planner/calendar?blogId=6968914&openWithPostUuid=813728476439332408",
     "scheduled_for": "2026-11-22T17:36:00-06:00",
-    "accepted_at": "2026-11-22T23:30:33.145Z"
+    "accepted_at": "2026-11-22T23:30:33.145Z",
+    "publication_status": "failed",
+    "detailed_status": "You have reached your Metricool account limit.",
+    "verified_at": "2026-11-22T23:38:27.159Z"
   }
 }
