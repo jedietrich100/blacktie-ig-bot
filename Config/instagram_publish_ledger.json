@@ -439,8 +439,10 @@
     "container_id": "18115541858148189",
     "image_url": "https://raw.githubusercontent.com/jedietrich100/blacktie-ig-bot/5eb1793d16c23d152afb0cb50681354c97ff450e/docs/posts/2026-11-24.jpg",
     "media_id": "18120776359969863",
+    "permalink": "https://www.instagram.com/p/DgGqiv-HGNv/",
     "publish_attempt": 1,
-    "status": "published_unverified",
-    "updated_at": "2026-11-24T00:26:40.180270+00:00"
+    "published_at": "2026-11-24T00:26:37+0000",
+    "status": "published",
+    "updated_at": "2026-11-24T00:26:42.066288+00:00"
   }
 }
